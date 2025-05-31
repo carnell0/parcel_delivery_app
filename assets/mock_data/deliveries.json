@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1,
+    "sender_id": 1,
+    "receiver_email": "jean@example.com",
+    "receiver_name": "Jean Dupont",
+    "receiver_address": "Cotonou, Akpakpa",
+    "weight": 2.5,
+    "description": "Colis test",
+    "delivery_type": "express",
+    "estimated_price": 5000.0,
+    "status": "in_transit"
+  },
+  {
+    "id": 2,
+    "sender_id": 1,
+    "receiver_email": "marie@example.com",
+    "receiver_name": "Marie Koffi",
+    "receiver_address": "Cotonou, Fidjrossè",
+    "weight": 1.0,
+    "description": "Colis test 2",
+    "delivery_type": "standard",
+    "estimated_price": 3000.0,
+    "status": "delivered"
+  }
+]
