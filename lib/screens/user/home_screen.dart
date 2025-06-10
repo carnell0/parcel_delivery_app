@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:parcel_delivery/models/colis.dart';
 import 'package:provider/provider.dart';
+import '../../models/demande.dart';
 import '../../services/api_service.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_card.dart';
@@ -39,11 +39,11 @@ class HomeScreenState extends State<HomeScreen> {
         selectedItemColor: const Color(0xFFF28C38),
         unselectedItemColor: const Color(0xFF616161),
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: 'Orders'),
-          BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Track'),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Accueil'),
+          BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: 'Livraisons'),
+          BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Suivi'),
           BottomNavigationBarItem(icon: Icon(Icons.message), label: 'Messages'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
         ],
       ),
     );
@@ -75,7 +75,7 @@ class HomeContent extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Hello, ${user?.prenom ?? 'User'} ${user?.nom ?? ''}',
+                'Bonjour, ${user?.prenom ?? 'Utilisateur'} ${user?.nom ?? ''}',
                 style: const TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
@@ -84,7 +84,7 @@ class HomeContent extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Ready to send a parcel?',
+                'Prêt à envoyer un colis ?',
                 style: TextStyle(
                   fontSize: 16,
                   color: Colors.white70,
@@ -92,12 +92,12 @@ class HomeContent extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               CustomButton(
-                text: 'New Order',
+                text: 'Nouvelle livraison',
                 onPressed: () => Navigator.pushNamed(context, '/delivery-form'),
               ),
               const SizedBox(height: 24),
               const Text(
-                'Recent Orders',
+                'Livraisons récentes',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
@@ -105,39 +105,39 @@ class HomeContent extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              FutureBuilder<List<Colis>>(
-                future: apiService.getClientOrders(),
+              FutureBuilder<List<Demande>>(
+                future: apiService.getClientDemandes(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator(color: Color(0xFFF28C38)));
                   }
-                  final orders = snapshot.data ?? [];
-                  if (orders.isEmpty) {
+                  final demandes = snapshot.data ?? [];
+                  if (demandes.isEmpty) {
                     return const Text(
-                      'No recent orders',
+                      'Aucune livraison récente',
                       style: TextStyle(color: Colors.white70),
                     );
                   }
                   return Column(
-                    children: orders.take(2).map((order) {
+                    children: demandes.take(2).map((demande) {
                       return CustomCard(
                         child: ListTile(
                           contentPadding: const EdgeInsets.all(16),
                           title: Text(
-                            'Order #${order.id}',
+                            'Livraison #${demande.id}',
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Color(0xFF1C2526),
                             ),
                           ),
                           subtitle: Text(
-                            'Recipient: ${order.receiverName}\nStatus: ${order.status}',
+                            'Adresse: ${demande.adresseDestination}\nStatut: ${demande.statutDemande}',
                             style: const TextStyle(color: Color(0xFF616161)),
                           ),
                           onTap: () => Navigator.pushNamed(
                             context,
                             '/track',
-                            arguments: order.id,
+                            arguments: demande.id,
                           ),
                         ),
                       );

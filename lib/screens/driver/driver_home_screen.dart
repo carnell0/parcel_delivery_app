@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
 import '../../widgets/custom_button.dart';
-import 'package:parcel_delivery/models/colis.dart';
+import '../../models/livraison.dart';
+import '../../models/demande.dart';
 
 class DriverHomeScreen extends StatefulWidget {
   const DriverHomeScreen({super.key});
@@ -49,19 +50,14 @@ class DriverHomeScreenState extends State<DriverHomeScreen> {
                           ),
                         ),
                         Text(
-                          'Véhicule: ${user?.typeVehicule ?? "Moto"} • ${user?.nombreLivraisons ?? 0} livraisons',
+                          'Points de fidélité: 0',
                           style: const TextStyle(fontSize: 14, color: Colors.white70),
                         ),
                       ],
                     ),
                     CircleAvatar(
                       radius: 20,
-                      backgroundImage: user?.photoLivreur != null
-                          ? NetworkImage(user?.photoLivreur ?? '')
-                          : null,
-                      child: user?.photoLivreur == null
-                          ? const Icon(Icons.person, color: Color(0xFFF28C38))
-                          : null,
+                      child: const Icon(Icons.person, color: Color(0xFFF28C38)),
                     ),
                   ],
                 ),
@@ -90,13 +86,13 @@ class DriverHomeScreenState extends State<DriverHomeScreen> {
                 child: IndexedStack(
                   index: _currentIndex,
                   children: [
-                    FutureBuilder<List<Colis>>(
-                      future: apiService.getDriverOrders(),
+                    FutureBuilder<List<Livraison>>(
+                      future: apiService.getLivreurLivraisons(),
                       builder: (context, snapshot) {
                         if (snapshot.connectionState == ConnectionState.waiting) {
                           return const Center(child: CircularProgressIndicator(color: Color(0xFFF28C38)));
                         }
-                        final orders = snapshot.data ?? [];
+                        final livraisons = snapshot.data ?? [];
                         return Padding(
                           padding: const EdgeInsets.all(16),
                           child: Column(
@@ -112,7 +108,7 @@ class DriverHomeScreenState extends State<DriverHomeScreen> {
                               ),
                               const SizedBox(height: 16),
                               Expanded(
-                                child: orders.isEmpty
+                                child: livraisons.isEmpty
                                     ? const Center(
                                         child: Text(
                                           'Aucune livraison assignée',
@@ -120,9 +116,9 @@ class DriverHomeScreenState extends State<DriverHomeScreen> {
                                         ),
                                       )
                                     : ListView.builder(
-                                        itemCount: orders.length,
+                                        itemCount: livraisons.length,
                                         itemBuilder: (context, index) {
-                                          final order = orders[index];
+                                          final livraison = livraisons[index];
                                           return Card(
                                             color: const Color(0xFFF5F6F5),
                                             margin: const EdgeInsets.only(bottom: 16),
@@ -132,14 +128,15 @@ class DriverHomeScreenState extends State<DriverHomeScreen> {
                                             child: ListTile(
                                               contentPadding: const EdgeInsets.all(16),
                                               title: Text(
-                                                'Colis #${order.id}',
+                                                'Livraison #${livraison.id}',
                                                 style: const TextStyle(
                                                   fontWeight: FontWeight.bold,
                                                   color: Color(0xFF1C2526),
                                                 ),
                                               ),
                                               subtitle: Text(
-                                                'Adresse: ${order.receiverAddress}\nStatut: ${order.status}',
+                                                'Statut: ${livraison.statut}\n'
+                                                'Date de prise en charge: ${livraison.datePriseEnCharge.toString().split('.')[0]}',
                                                 style: const TextStyle(color: Color(0xFF616161)),
                                               ),
                                               trailing: IconButton(
@@ -152,7 +149,7 @@ class DriverHomeScreenState extends State<DriverHomeScreen> {
                                                 },
                                               ),
                                               onTap: () {
-                                                Navigator.pushNamed(context, '/driver/order', arguments: order.id);
+                                                Navigator.pushNamed(context, '/driver/livraison', arguments: livraison.id);
                                               },
                                             ),
                                           );

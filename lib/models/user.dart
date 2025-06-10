@@ -1,5 +1,5 @@
 class User {
-  final int id;
+  final String id;
   final String nom;
   final String prenom;
   final String email;
@@ -8,8 +8,6 @@ class User {
   final String? typeVehicule;
   final String? numeroImmatriculation;
   final String? photoLivreur;
-  final int? nombreLivraisons;
-  final bool? disponibilite;
 
   User({
     required this.id,
@@ -21,23 +19,40 @@ class User {
     this.typeVehicule,
     this.numeroImmatriculation,
     this.photoLivreur,
-    this.nombreLivraisons,
-    this.disponibilite,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
-      id: json['id'] as int,
-      nom: json['nom'] as String,
-      prenom: json['prenom'] as String,
-      email: json['email'] as String,
-      telephone: json['telephone'] as String,
-      role: json['role'] as String,
-      typeVehicule: json['type_vehicule'] as String?,
-      numeroImmatriculation: json['numero_immatriculation'] as String?,
-      photoLivreur: json['photo_livreur'] as String?,
-      nombreLivraisons: json['nombre_livraisons'] as int?,
-      disponibilite: json['disponibilite'] as bool?,
+      id: json['id'],
+      nom: json['nom'],
+      prenom: json['prenom'],
+      email: json['email'],
+      telephone: json['telephone'],
+      role: json['role'],
+      typeVehicule: json['typeVehicule'],
+      numeroImmatriculation: json['numeroImmatriculation'],
+      photoLivreur: json['photoLivreur'],
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    final Map<String, dynamic> data = {
+      'id': id,
+      'nom': nom,
+      'prenom': prenom,
+      'email': email,
+      'telephone': telephone,
+      'role': role,
+    };
+
+    if (role == 'livreur') {
+      data.addAll({
+        'typeVehicule': typeVehicule,
+        'numeroImmatriculation': numeroImmatriculation,
+        'photoLivreur': photoLivreur,
+      });
+    }
+
+    return data;
   }
 }

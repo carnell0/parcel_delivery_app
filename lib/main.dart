@@ -18,7 +18,7 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Parcel Delivery',
         theme: appTheme,
-        initialRoute: '/home',
+        initialRoute: '/splash',
         onGenerateRoute: AppRoutes.generateRoute,
         debugShowCheckedModeBanner: false,
       ),
