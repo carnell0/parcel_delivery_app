@@ -174,7 +174,7 @@ class DeliveryFormScreenState extends State<DeliveryFormScreen> {
                             if (_formKey.currentState!.validate()) {
                               setState(() => _isLoading = true);
                               final success = await apiService.createOrder(
-                                utilisateurId: int.parse(user!.id),
+                                utilisateurId: user!.id,
                                 natureColis: _descriptionController.text,
                                 dimensions: _receiverAddressController.text,
                                 poids: double.parse(_weightController.text),

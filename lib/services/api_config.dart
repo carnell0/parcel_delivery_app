@@ -3,12 +3,24 @@ class ApiConfig {
   static const String baseUrl = 'https://delivery-app-api-srb5.onrender.com/api';
   
   // Auth endpoints
-  static const String loginEndpoint = '/login';
-  static const String registerEndpoint = '/utilisateurs';
-  static const String verifyOTPEndpoint = '/verify-otp';
-  static const String refreshOTPEndpoint = '/refresh-otp';
-  static const String logoutEndpoint = '/logout';
+  static const String loginEndpoint = '/login/';
+  /// Endpoint pour créer un utilisateur avec envoi d'OTP
+  /// Méthode: POST
+  /// Authentifié: Non
+  /// Validation:
+  /// {
+  ///   "password": "motdepasse123",
+  ///   "email": "redlekid@gmail.com",
+  ///   "first_name": "Jean",
+  ///   "last_name": "Dupont",
+  ///   "telephone": "0159498601"
+  /// }
+  static const String registerEndpoint = '/utilisateurs/';
+  static const String verifyOTPEndpoint = '/verify-otp/';
+  static const String refreshOTPEndpoint = '/refresh-otp/';
+  static const String logoutEndpoint = '/logout/';
   static const String refreshTokenEndpoint = '/refresh-token/';
+  static const String currentUserEndpoint = '/me/'; // Endpoint pour récupérer l'utilisateur connecté
   
   // User endpoints
   static const String userProfileEndpoint = '/users/profile/';
@@ -21,6 +33,7 @@ class ApiConfig {
   static const String deliveryDetailsEndpoint = '/deliveries/{id}/';
   static const String updateDeliveryStatusEndpoint = '/deliveries/{id}/status/';
   static const String cancelDeliveryEndpoint = '/deliveries/{id}/cancel/';
+  static const String clientDeliveriesEndpoint = '/deliveries/client/';
   
   // Driver endpoints
   static const String driverProfileEndpoint = '/drivers/profile/';

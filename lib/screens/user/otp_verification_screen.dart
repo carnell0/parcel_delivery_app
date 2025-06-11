@@ -59,24 +59,7 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
                   ? const Center(child: CircularProgressIndicator())
                   : CustomButton(
                       text: 'Vérifier',
-                      onPressed: () async {
-                        if (_formKey.currentState!.validate()) {
-                          setState(() => _isLoading = true);
-                          final apiService = Provider.of<ApiService>(context, listen: false);
-                          final response = await apiService.verifyOTP(
-                            email: widget.email,
-                            otp: _otpController.text,
-                          );
-                          setState(() => _isLoading = false);
-                          if (response.success) {
-                            Navigator.pushReplacementNamed(context, '/home');
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(response.message)),
-                            );
-                          }
-                        }
-                      },
+                      onPressed: _verifyOTP,
                     ),
               const SizedBox(height: 16),
               TextButton(
@@ -102,5 +85,35 @@ class _OTPVerificationScreenState extends State<OTPVerificationScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _verifyOTP() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() => _isLoading = true);
+      final apiService = Provider.of<ApiService>(context, listen: false);
+      final response = await apiService.verifyOTP(
+        email: widget.email,
+        otp: _otpController.text,
+      );
+      setState(() => _isLoading = false);
+      
+      if (response.success) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(response.message ?? 'Vérification réussie')),
+          );
+          // Redirection vers la page de connexion
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            '/login',
+            (route) => false, // Supprime toutes les routes précédentes
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(response.message ?? 'Erreur lors de la vérification')),
+        );
+      }
+    }
   }
 }

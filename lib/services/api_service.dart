@@ -1,6 +1,9 @@
 import 'dart:convert';
+import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import '../models/user.dart';
 import '../models/demande.dart';
 import '../models/livraison.dart';
@@ -8,145 +11,299 @@ import '../models/otp.dart';
 import '../models/reclamation.dart';
 import '../models/retour.dart';
 import '../models/notification.dart' as app_notification;
+import '../models/delivery.dart';
 import 'api_config.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:dio/dio.dart';
 import 'package:http/http.dart' as http;
 
 class ApiService with ChangeNotifier {
+  final String _baseUrl = ApiConfig.baseUrl;
   User? _user;
   String? _accessToken;
   String? _refreshToken;
   late Dio _dio;
+  bool _isConnected = true;
+
+  // Clés pour le stockage local
+  static const String _tokenKey = 'auth_token';
+  static const String _refreshTokenKey = 'refresh_token';
 
   User? get user => _user;
+  bool get isConnected => _isConnected;
 
   ApiService() {
-    _dio = Dio(BaseOptions(
-      baseUrl: ApiConfig.baseUrl,
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
-    ));
-    _setupInterceptors();
     _init();
-  }
-
-  void _setupInterceptors() {
-    _dio.interceptors.add(InterceptorsWrapper(
-      onError: (DioException error, ErrorInterceptorHandler handler) async {
-        if (error.response?.statusCode == 401 && _refreshToken != null) {
-          try {
-            final response = await _dio.post(
-              ApiConfig.refreshTokenEndpoint,
-              data: {'refresh': _refreshToken},
-            );
-            if (response.statusCode == 200) {
-              _accessToken = response.data['access'] as String;
-              _refreshToken = response.data['refresh'] as String;
-              
-              // Retry the original request
-              final retryResponse = await _dio.request(
-                error.requestOptions.path,
-                data: error.requestOptions.data,
-                queryParameters: error.requestOptions.queryParameters,
-                options: Options(
-                  method: error.requestOptions.method,
-                  headers: {
-                    ...error.requestOptions.headers,
-                    'Authorization': 'Bearer $_accessToken',
-                  },
-                ),
-              );
-              return handler.resolve(retryResponse);
-            }
-          } catch (e) {
-            print('Token refresh failed: $e');
-            await logout();
-          }
-        }
-        return handler.next(error);
-      },
-    ));
+    _checkConnectivity();
   }
 
   Future<void> _init() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      _accessToken = prefs.getString('access_token');
-      _refreshToken = prefs.getString('refresh_token');
-      
-      if (_accessToken != null) {
-        try {
-          final userResponse = await _dio.get(
-            ApiConfig.userProfileEndpoint,
-            options: Options(
-              headers: {'Authorization': 'Bearer $_accessToken'},
-            ),
-          );
-          if (userResponse.statusCode == 200) {
-            _user = User.fromJson(userResponse.data);
-            notifyListeners();
-          }
-        } catch (e) {
-          print('Error initializing user session: $e');
-          await _clearTokens();
+    _dio = Dio(BaseOptions(
+      baseUrl: _baseUrl,
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(seconds: 30),
+      sendTimeout: const Duration(seconds: 30),
+    ));
+
+    // Charger le token au démarrage
+    final prefs = await SharedPreferences.getInstance();
+    _accessToken = prefs.getString('access_token');
+    _refreshToken = prefs.getString('refresh_token');
+
+    if (_accessToken != null) {
+      _dio.options.headers['Authorization'] = 'Bearer $_accessToken';
+    }
+
+    _dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) {
+        if (_accessToken != null) {
+          options.headers['Authorization'] = 'Bearer $_accessToken';
         }
+        return handler.next(options);
+      },
+      onError: (DioException e, handler) async {
+        if (e.response?.statusCode == 401) {
+          // Token expiré, essayer de le rafraîchir
+          if (await _refreshAccessToken()) {
+            // Réessayer la requête avec le nouveau token
+            e.requestOptions.headers['Authorization'] = 'Bearer $_accessToken';
+            return handler.resolve(await _dio.fetch(e.requestOptions));
+          }
+        }
+        return handler.next(e);
+      },
+    ));
+
+    try {
+      final response = await http.get(
+        Uri.parse('${_baseUrl}${ApiConfig.loginEndpoint}'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (_accessToken != null) 'Authorization': 'Bearer $_accessToken',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['user'] != null) {
+          _user = User.fromJson(data['user']);
+          notifyListeners();
+        }
+      } else if (response.statusCode == 401) {
+        await _clearTokens();
       }
     } catch (e) {
-      print('Error during initialization: $e');
+      print('Error initializing user session: $e');
       await _clearTokens();
     }
   }
 
-  Future<void> _clearTokens() async {
-    _accessToken = null;
-    _refreshToken = null;
-    _user = null;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('access_token');
-    await prefs.remove('refresh_token');
-    notifyListeners();
+  Future<void> _checkConnectivity() async {
+    try {
+      final connectivityResult = await Connectivity().checkConnectivity();
+      _isConnected = connectivityResult != ConnectivityResult.none;
+      notifyListeners();
+    } catch (e) {
+      _isConnected = false;
+      notifyListeners();
+    }
   }
 
-  Future<bool> login(String email, String password) async {
+  Future<bool> _isServerReachable() async {
+    try {
+      final result = await InternetAddress.lookup('delivery-app-api-srb5.onrender.com');
+      if (result.isEmpty || result[0].rawAddress.isEmpty) {
+        print('Server lookup failed: No IP address found');
+        return false;
+      }
+      print('Server IP: ${result[0].address}');
+      return true;
+    } on SocketException catch (e) {
+      print('Server lookup failed: ${e.message}');
+      return false;
+    } catch (e) {
+      print('Server lookup failed: $e');
+      return false;
+    }
+  }
+
+  Future<bool> _refreshAccessToken() async {
+    if (_refreshToken == null) return false;
+
     try {
       final response = await _dio.post(
-        ApiConfig.loginEndpoint,
-        data: {'email': email, 'password': password},
+        ApiConfig.refreshTokenEndpoint,
+        data: {'refresh': _refreshToken},
       );
 
       if (response.statusCode == 200) {
         _accessToken = response.data['access'] as String;
         _refreshToken = response.data['refresh'] as String;
 
+        // Sauvegarder les nouveaux tokens
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('access_token', _accessToken!);
         await prefs.setString('refresh_token', _refreshToken!);
 
-        final userResponse = await _dio.get(
-          ApiConfig.userProfileEndpoint,
-          options: Options(
-            headers: {'Authorization': 'Bearer $_accessToken'},
-          ),
-        );
-
-        if (userResponse.statusCode == 200) {
-          _user = User.fromJson(userResponse.data);
-          notifyListeners();
-          return true;
-        }
-      }
-      print('Login failed: ${response.statusCode} - ${response.data}');
-      return false;
-    } on DioException catch (e) {
-      print('Login error: ${e.message}');
-      if (e.response != null) {
-        print('Error response: ${e.response?.data}');
+        return true;
       }
       return false;
     } catch (e) {
-      print('Unexpected error during login: $e');
       return false;
+    }
+  }
+
+  Future<Map<String, dynamic>> login(String email, String password) async {
+    try {
+      // Vérifier la connectivité
+      await _checkConnectivity();
+      if (!_isConnected) {
+        return {
+          'success': false,
+          'message': 'Pas de connexion Internet. Veuillez vérifier votre connexion et réessayer.',
+          'error': 'no_internet',
+        };
+      }
+
+      // Vérifier si le serveur est accessible
+      final isServerReachable = await _isServerReachable();
+      if (!isServerReachable) {
+        return {
+          'success': false,
+          'message': 'Le serveur n\'est pas accessible. Veuillez réessayer dans quelques minutes.',
+          'error': 'server_unreachable',
+        };
+      }
+
+      print('Tentative de connexion à: ${_baseUrl}${ApiConfig.loginEndpoint}');
+      
+      final response = await _dio.post(
+        ApiConfig.loginEndpoint,
+        data: {
+          'email': email.trim(),
+          'password': password,
+        },
+        options: Options(
+          validateStatus: (status) => status! < 500,
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+        ),
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          throw TimeoutException('La connexion au serveur a pris trop de temps');
+        },
+      );
+
+      print('Réponse de connexion - Status: ${response.statusCode}');
+      print('Réponse de connexion - Body: ${response.data}');
+
+      if (response.statusCode == 200) {
+        _accessToken = response.data['access'] as String;
+        _refreshToken = response.data['refresh'] as String;
+
+        // Sauvegarder les tokens
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('access_token', _accessToken!);
+        await prefs.setString('refresh_token', _refreshToken!);
+
+        if (response.data['user'] != null) {
+          _user = User.fromJson(response.data['user']);
+          notifyListeners();
+        }
+
+        return {
+          'success': true,
+          'message': 'Connexion réussie',
+        };
+      } else if (response.statusCode == 401) {
+        return {
+          'success': false,
+          'message': 'Email ou mot de passe incorrect',
+          'error': 'invalid_credentials',
+        };
+      } else if (response.statusCode == 400) {
+        final errorData = response.data;
+        String errorMessage = 'Veuillez remplir tous les champs correctement';
+        
+        if (errorData is Map<String, dynamic>) {
+          if (errorData['detail'] != null) {
+            errorMessage = errorData['detail'].toString();
+          } else if (errorData['message'] != null) {
+            errorMessage = errorData['message'].toString();
+          } else if (errorData['error'] != null) {
+            errorMessage = errorData['error'].toString();
+          }
+        }
+        
+        return {
+          'success': false,
+          'message': errorMessage,
+          'error': 'invalid_input',
+        };
+      }
+      
+      return {
+        'success': false,
+        'message': 'Une erreur est survenue lors de la connexion',
+        'error': 'unknown',
+      };
+    } on TimeoutException {
+      return {
+        'success': false,
+        'message': 'Le serveur met trop de temps à répondre. Veuillez réessayer plus tard.',
+        'error': 'timeout',
+      };
+    } on DioException catch (e) {
+      print('Erreur de connexion Dio: ${e.message}');
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout ||
+          e.type == DioExceptionType.sendTimeout) {
+        return {
+          'success': false,
+          'message': 'Le serveur met trop de temps à répondre. Veuillez réessayer plus tard.',
+          'error': 'timeout',
+        };
+      } else if (e.type == DioExceptionType.connectionError) {
+        return {
+          'success': false,
+          'message': 'Impossible de se connecter au serveur. Veuillez vérifier votre connexion Internet.',
+          'error': 'connection_error',
+        };
+      } else if (e.response?.statusCode == 400) {
+        final errorData = e.response?.data;
+        String errorMessage = 'Veuillez remplir tous les champs correctement';
+        
+        if (errorData is Map<String, dynamic>) {
+          if (errorData['detail'] != null) {
+            errorMessage = errorData['detail'].toString();
+          } else if (errorData['message'] != null) {
+            errorMessage = errorData['message'].toString();
+          } else if (errorData['error'] != null) {
+            errorMessage = errorData['error'].toString();
+          }
+        }
+        
+        return {
+          'success': false,
+          'message': errorMessage,
+          'error': 'invalid_input',
+        };
+      }
+      return {
+        'success': false,
+        'message': 'Une erreur est survenue lors de la connexion. Veuillez réessayer.',
+        'error': 'dio_error',
+      };
+    } catch (e) {
+      print('Erreur de connexion inattendue: $e');
+      return {
+        'success': false,
+        'message': 'Une erreur inattendue est survenue. Veuillez réessayer.',
+        'error': 'unknown',
+      };
     }
   }
 
@@ -163,12 +320,11 @@ class ApiService with ChangeNotifier {
   }) async {
     try {
       final Map<String, dynamic> data = {
-        'nom': nom,
-        'prenom': prenom,
+        'first_name': prenom,
+        'last_name': nom,
         'email': email,
         'telephone': telephone,
-        'motDePasse': motDePasse,
-        'role': role,
+        'password': motDePasse,
       };
 
       if (role == 'livreur') {
@@ -179,11 +335,11 @@ class ApiService with ChangeNotifier {
         });
       }
 
-      print('Sending registration request to: ${ApiConfig.baseUrl}${ApiConfig.registerEndpoint}');
+      print('Sending registration request to: ${_baseUrl}${ApiConfig.registerEndpoint}');
       print('Request data: $data');
 
       final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.registerEndpoint}'),
+        Uri.parse('${_baseUrl}${ApiConfig.registerEndpoint}'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(data),
       );
@@ -193,7 +349,11 @@ class ApiService with ChangeNotifier {
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final responseData = jsonDecode(response.body);
-        return OTPResponse.fromJson(responseData);
+        return OTPResponse(
+          success: true,
+          message: responseData['message'] ?? 'Compte créé avec succès',
+          email: email,
+        );
       } else {
         final errorData = jsonDecode(response.body);
         return OTPResponse(
@@ -216,7 +376,7 @@ class ApiService with ChangeNotifier {
   }) async {
     try {
       final response = await http.post(
-        Uri.parse(ApiConfig.baseUrl + '/auth/verify-otp'),
+        Uri.parse('${_baseUrl}${ApiConfig.verifyOTPEndpoint}'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': email,
@@ -225,11 +385,18 @@ class ApiService with ChangeNotifier {
       );
 
       final data = jsonDecode(response.body);
-      if (data['success'] == true && data['token'] != null) {
-        // TODO: Store token in secure storage
-        _user = User.fromJson(data['user']);
+      if (response.statusCode == 200) {
+        return OTPResponse(
+          success: true,
+          message: 'Compte activé avec succès. Veuillez vous connecter.',
+          email: email,
+        );
+      } else {
+        return OTPResponse(
+          success: false,
+          message: data['message'] ?? 'Erreur lors de la vérification',
+        );
       }
-      return OTPResponse.fromJson(data);
     } catch (e) {
       return OTPResponse(
         success: false,
@@ -241,7 +408,7 @@ class ApiService with ChangeNotifier {
   Future<OTPResponse> resendOTP({required String email}) async {
     try {
       final response = await http.post(
-        Uri.parse(ApiConfig.baseUrl + '/auth/resend-otp'),
+        Uri.parse('${_baseUrl}${ApiConfig.refreshOTPEndpoint}'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email}),
       );
@@ -293,35 +460,34 @@ class ApiService with ChangeNotifier {
     }
   }
 
-  Future<List<Demande>> getClientDeliveries() async {
+  Future<List<Demande>> getClientDemandes() async {
     try {
       final response = await _dio.get(
-        ApiConfig.deliveriesEndpoint,
-        options: Options(headers: {'Authorization': 'Bearer $_accessToken'}),
+        ApiConfig.clientDeliveriesEndpoint,
+        options: Options(
+          headers: {'Authorization': 'Bearer $_accessToken'},
+          validateStatus: (status) => status! < 500,
+        ),
       );
 
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data;
-        return data
-            .map((json) => Demande.fromJson(json))
-            .where((demande) => demande.utilisateurId == _user?.id)
-            .toList();
+        return data.map((json) => Demande.fromJson(json)).toList();
+      } else if (response.statusCode == 404) {
+        print('Endpoint non trouvé: ${ApiConfig.clientDeliveriesEndpoint}');
+        return [];
       }
       print('Get client deliveries failed: ${response.data}');
+      return [];
     } on DioException catch (e) {
       print('Get client deliveries error: ${e.message}');
-    }
-
-    // Fallback to mock data
-    try {
-      final String jsonString = await rootBundle.loadString('assets/mock_data/demandes.json');
-      final List<dynamic> jsonData = jsonDecode(jsonString);
-      return jsonData
-          .map((json) => Demande.fromJson(json))
-          .where((demande) => demande.utilisateurId == _user?.id)
-          .toList();
+      if (e.response?.statusCode == 404) {
+        print('Endpoint non trouvé: ${ApiConfig.clientDeliveriesEndpoint}');
+        return [];
+      }
+      return [];
     } catch (e) {
-      print('Error loading mock deliveries: $e');
+      print('Unexpected error in getClientDemandes: $e');
       return [];
     }
   }
@@ -330,19 +496,32 @@ class ApiService with ChangeNotifier {
     try {
       final response = await _dio.get(
         ApiConfig.driverDeliveriesEndpoint,
-        options: Options(headers: {'Authorization': 'Bearer $_accessToken'}),
+        options: Options(
+          headers: {'Authorization': 'Bearer $_accessToken'},
+          validateStatus: (status) => status! < 500,
+        ),
       );
 
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data;
         return data.map((json) => Livraison.fromJson(json)).toList();
+      } else if (response.statusCode == 404) {
+        print('Endpoint non trouvé: ${ApiConfig.driverDeliveriesEndpoint}');
+        return [];
       }
       print('Get driver deliveries failed: ${response.data}');
+      return [];
     } on DioException catch (e) {
       print('Get driver deliveries error: ${e.message}');
+      if (e.response?.statusCode == 404) {
+        print('Endpoint non trouvé: ${ApiConfig.driverDeliveriesEndpoint}');
+        return [];
+      }
+      return [];
+    } catch (e) {
+      print('Unexpected error in getDriverDeliveries: $e');
+      return [];
     }
-
-    return [];
   }
 
   Future<bool> acceptDelivery(String deliveryId) async {
@@ -455,96 +634,79 @@ class ApiService with ChangeNotifier {
   }
 
   Future<bool> updateProfile({
-    required String firstName,
-    required String lastName,
-    required String phone,
-    String? photo,
+    required String nom,
+    required String prenom,
+    required String email,
+    required String telephone,
   }) async {
     try {
-      final response = await _dio.put(
-        ApiConfig.updateProfileEndpoint,
-        options: Options(headers: {'Authorization': 'Bearer $_accessToken'}),
-        data: {
-          'first_name': firstName,
-          'last_name': lastName,
-          'phone': phone,
-          if (photo != null) 'photo': photo,
+      final response = await http.put(
+        Uri.parse('${_baseUrl}${ApiConfig.updateProfileEndpoint}'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_accessToken',
         },
+        body: jsonEncode({
+          'first_name': prenom,
+          'last_name': nom,
+          'email': email,
+          'telephone': telephone,
+        }),
       );
 
       if (response.statusCode == 200) {
-        _user = User.fromJson(response.data);
+        final responseData = jsonDecode(response.body);
+        _user = User.fromJson(responseData);
         notifyListeners();
         return true;
       }
-      print('Update profile failed: ${response.data}');
       return false;
-    } on DioException catch (e) {
-      print('Update profile error: ${e.message}');
+    } catch (e) {
       return false;
     }
   }
 
   Future<bool> changePassword({
-    required String currentPassword,
+    required String oldPassword,
     required String newPassword,
   }) async {
     try {
-      final response = await _dio.post(
-        ApiConfig.changePasswordEndpoint,
-        options: Options(headers: {'Authorization': 'Bearer $_accessToken'}),
-        data: {
-          'current_password': currentPassword,
-          'new_password': newPassword,
+      final response = await http.post(
+        Uri.parse('${_baseUrl}${ApiConfig.changePasswordEndpoint}'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_accessToken',
         },
+        body: jsonEncode({
+          'old_password': oldPassword,
+          'new_password': newPassword,
+        }),
       );
 
-      if (response.statusCode == 200) {
-        return true;
-      }
-      print('Change password failed: ${response.data}');
-      return false;
-    } on DioException catch (e) {
-      print('Change password error: ${e.message}');
+      return response.statusCode == 200;
+    } catch (e) {
       return false;
     }
   }
 
-  Future<void> logout() async {
+  Future<bool> logout() async {
     try {
-      await _dio.post(
-        ApiConfig.logoutEndpoint,
-        options: Options(headers: {'Authorization': 'Bearer $_accessToken'}),
-      );
-    } on DioException catch (e) {
-      print('Logout error: ${e.message}');
-    } finally {
-      _user = null;
-      _accessToken = null;
-      _refreshToken = null;
+      if (_accessToken != null) {
+        await _dio.post(ApiConfig.logoutEndpoint);
+      }
+
+      // Supprimer les tokens
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('access_token');
       await prefs.remove('refresh_token');
+
+      _accessToken = null;
+      _refreshToken = null;
+      _user = null;
       notifyListeners();
-    }
-  }
-
-  Future<List<Demande>> getClientDemandes() async {
-    try {
-      final response = await _dio.get(
-        ApiConfig.deliveriesEndpoint,
-        options: Options(headers: {'Authorization': 'Bearer $_accessToken'}),
-      );
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = response.data;
-        return data.map((json) => Demande.fromJson(json)).toList();
-      }
-      print('Get client deliveries failed: ${response.data}');
-      return [];
-    } on DioException catch (e) {
-      print('Get client deliveries error: ${e.message}');
-      return [];
+      return true;
+    } catch (e) {
+      return false;
     }
   }
 
@@ -602,5 +764,165 @@ class ApiService with ChangeNotifier {
       print('Create order error: ${e.message}');
       return false;
     }
+  }
+
+  Future<User?> getUserProfile() async {
+    try {
+      final response = await http.get(
+        Uri.parse('${_baseUrl}${ApiConfig.userProfileEndpoint}'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_accessToken',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        _user = User.fromJson(data);
+        notifyListeners();
+        return _user;
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<Delivery> getDeliveryDetails(int deliveryId) async {
+    try {
+      final response = await _dio.get(
+        '${_baseUrl}/deliveries/$deliveryId/',
+        options: Options(
+          headers: {'Authorization': 'Bearer $_accessToken'},
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return Delivery.fromJson(response.data);
+      } else {
+        throw Exception('Failed to load delivery details');
+      }
+    } catch (e) {
+      print('Error getting delivery details: $e');
+      throw Exception('Failed to load delivery details: $e');
+    }
+  }
+
+  Future<void> updateDeliveryLocation(int deliveryId, double latitude, double longitude) async {
+    try {
+      final response = await _dio.patch(
+        '${_baseUrl}/deliveries/$deliveryId/update-location/',
+        data: {
+          'latitude': latitude,
+          'longitude': longitude,
+        },
+        options: Options(
+          headers: {'Authorization': 'Bearer $_accessToken'},
+        ),
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to update delivery location');
+      }
+    } catch (e) {
+      print('Error updating delivery location: $e');
+      throw Exception('Failed to update delivery location: $e');
+    }
+  }
+
+  Stream<Delivery> trackDelivery(int deliveryId) async* {
+    while (true) {
+      try {
+        final delivery = await getDeliveryDetails(deliveryId);
+        yield delivery;
+        await Future.delayed(const Duration(seconds: 30)); // Update every 30 seconds
+      } catch (e) {
+        print('Error tracking delivery: $e');
+        await Future.delayed(const Duration(seconds: 5)); // Wait 5 seconds before retrying
+      }
+    }
+  }
+
+  Future<List<Delivery>> getActiveDeliveries() async {
+    try {
+      final response = await _dio.get(
+        '${_baseUrl}/driver/active-deliveries/',
+        options: Options(
+          headers: {'Authorization': 'Bearer $_accessToken'},
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data;
+        return data.map((json) => Delivery.fromJson(json)).toList();
+      } else {
+        throw Exception('Failed to load active deliveries');
+      }
+    } catch (e) {
+      print('Error getting active deliveries: $e');
+      throw Exception('Failed to load active deliveries: $e');
+    }
+  }
+
+  Future<void> updateDeliveryStatus(int deliveryId, String status) async {
+    try {
+      final response = await _dio.patch(
+        '${_baseUrl}/deliveries/$deliveryId/update-status/',
+        data: {'status': status},
+        options: Options(
+          headers: {'Authorization': 'Bearer $_accessToken'},
+        ),
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to update delivery status');
+      }
+    } catch (e) {
+      print('Error updating delivery status: $e');
+      throw Exception('Failed to update delivery status: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> getCurrentUser() async {
+    try {
+      final response = await _dio.get(
+        ApiConfig.currentUserEndpoint,
+        options: Options(headers: {'Authorization': 'Bearer $_accessToken'}),
+      );
+
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+      throw Exception('Failed to load user data');
+    } on DioException catch (e) {
+      print('Get current user error: ${e.message}');
+      throw Exception('Failed to load user data');
+    }
+  }
+
+  Future<void> _loadToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    _accessToken = prefs.getString(_tokenKey);
+    _refreshToken = prefs.getString(_refreshTokenKey);
+    notifyListeners();
+  }
+
+  Future<void> _saveToken(String token, String refreshToken) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_tokenKey, token);
+    await prefs.setString(_refreshTokenKey, refreshToken);
+    _accessToken = token;
+    _refreshToken = refreshToken;
+    notifyListeners();
+  }
+
+  Future<void> _clearTokens() async {
+    _accessToken = null;
+    _refreshToken = null;
+    _user = null;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('access_token');
+    await prefs.remove('refresh_token');
+    notifyListeners();
   }
 }
