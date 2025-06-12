@@ -1,152 +1,520 @@
 import 'package:flutter/material.dart';
-import 'package:parcel_delivery/models/colis.dart';
+import 'package:parcel_delivery/theme/app_theme.dart';
 import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
-import '../../widgets/custom_button.dart';
-import '../../widgets/custom_card.dart';
-import 'deliveries_screen.dart';
-import 'track_screen.dart';
-import '../messages_screen.dart';
-import '../profile_screen.dart';
+import '../../screens/profile_screen.dart';
+import '../../screens/track_screen.dart';
+import '../../screens/messages_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  HomeScreenState createState() => HomeScreenState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
   int _currentIndex = 0;
-
-  final List<Widget> _screens = [
-    const HomeContent(),
-    const DeliveriesScreen(),
-    const TrackScreen(),
-    const MessagesScreen(),
-    const ProfileScreen(),
-  ];
+  late final PageController _pageController;
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: _screens[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: const Color(0xFFF5F6F5),
-        selectedItemColor: const Color(0xFFF28C38),
-        unselectedItemColor: const Color(0xFF616161),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.list_alt), label: 'Orders'),
-          BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Track'),
-          BottomNavigationBarItem(icon: Icon(Icons.message), label: 'Messages'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-        ],
-      ),
-    );
+  void initState() {
+    super.initState();
+    _pageController = PageController();
   }
-}
 
-class HomeContent extends StatelessWidget {
-  const HomeContent({super.key});
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  String get _currentTitle {
+    switch (_currentIndex) {
+      case 0:
+        return 'Dcoliv';
+      case 1:
+        return 'Livraisons';
+      case 2:
+        return 'Suivi';
+      case 3:
+        return 'Messages';
+      case 4:
+        return 'Profil';
+      default:
+        return 'Dcoliv';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final apiService = Provider.of<ApiService>(context);
     final user = apiService.user;
+    final isDriver = user?.role == 'livreur';
 
-    return Container(
-      width: double.infinity,
-      height: double.infinity,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF1C2526), Color(0xFF2E3B3E)],
+    return Scaffold(
+      backgroundColor: Colors.grey[100],
+      appBar: AppBar(
+        title: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          transitionBuilder: (Widget child, Animation<double> animation) {
+            return FadeTransition(
+              opacity: animation,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0.0, 0.5),
+                  end: Offset.zero,
+                ).animate(animation),
+                child: child,
+              ),
+            );
+          },
+          child: Text(
+            _currentTitle,
+            key: ValueKey<String>(_currentTitle),
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
         ),
+        centerTitle: true,
+        backgroundColor: AppTheme.primaryColor,
+        elevation: 0,
+        actions: [
+          if (_currentIndex == 0) // Afficher l'icône de notifications uniquement sur l'écran d'accueil
+            IconButton(
+              icon: const Icon(Icons.notifications_outlined),
+              onPressed: () {
+                // TODO: Implémenter la navigation vers les notifications
+              },
+            ),
+        ],
       ),
-      child: SingleChildScrollView(
+      body: PageView(
+        controller: _pageController,
+        physics: const NeverScrollableScrollPhysics(), // Désactive le défilement horizontal
+        onPageChanged: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+        children: [
+          // Écran principal
+          SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Carte de bienvenue
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppTheme.primaryColor,
+                          AppTheme.primaryColor.withOpacity(0.8),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(15),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.primaryColor.withOpacity(0.3),
+                          spreadRadius: 1,
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            isDriver ? Icons.delivery_dining : Icons.local_shipping_rounded,
+                            color: Colors.white,
+                            size: 30,
+                          ),
+                        ),
+                        const SizedBox(width: 15),
+                        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Hello, ${user?.prenom ?? 'User'} ${user?.nom ?? ''}',
+                                'Bonjour, ${user?.prenom ?? "Utilisateur"}',
                 style: const TextStyle(
-                  fontSize: 32,
+                                  fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
               ),
-              const SizedBox(height: 8),
-              const Text(
-                'Ready to send a parcel?',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.white70,
-                ),
-              ),
-              const SizedBox(height: 24),
-              CustomButton(
-                text: 'New Order',
-                onPressed: () => Navigator.pushNamed(context, '/delivery-form'),
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'Recent Orders',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 16),
-              FutureBuilder<List<Colis>>(
-                future: apiService.getClientOrders(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator(color: Color(0xFFF28C38)));
-                  }
-                  final orders = snapshot.data ?? [];
-                  if (orders.isEmpty) {
-                    return const Text(
-                      'No recent orders',
-                      style: TextStyle(color: Colors.white70),
-                    );
-                  }
-                  return Column(
-                    children: orders.take(2).map((order) {
-                      return CustomCard(
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.all(16),
-                          title: Text(
-                            'Order #${order.id}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF1C2526),
-                            ),
-                          ),
-                          subtitle: Text(
-                            'Recipient: ${order.receiverName}\nStatus: ${order.status}',
-                            style: const TextStyle(color: Color(0xFF616161)),
-                          ),
-                          onTap: () => Navigator.pushNamed(
-                            context,
-                            '/track',
-                            arguments: order.id,
+                              const SizedBox(height: 5),
+                              Text(
+                                isDriver 
+                                  ? 'Que souhaitez-vous livrer aujourd\'hui ?'
+                                  : 'Que souhaitez-vous faire aujourd\'hui ?',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      );
-                    }).toList(),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 25),
+
+                  if (isDriver) ...[
+                    // Carte de statut pour les livreurs
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(15),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.1),
+                            spreadRadius: 1,
+                            blurRadius: 10,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryColor.withOpacity(0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.delivery_dining,
+                              color: AppTheme.primaryColor,
+                              size: 30,
+                            ),
+                          ),
+                          const SizedBox(width: 15),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Statut actuel',
+                style: TextStyle(
+                  fontSize: 16,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                                SizedBox(height: 5),
+                                Row(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 5,
+                                      backgroundColor: Colors.green,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Disponible',
+                style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          Switch(
+                            value: true,
+                            onChanged: (value) {
+                              // TODO: Implémenter le changement de statut
+                            },
+                            activeColor: AppTheme.primaryColor,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 25),
+                  ] else ...[
+                    // Actions rapides pour les clients
+                    const Text(
+                      'Actions rapides',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildActionCard(
+                            icon: Icons.add_circle_outline,
+                            title: 'Nouvelle livraison',
+                            onTap: () {
+                              // TODO: Navigation vers nouvelle livraison
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 15),
+                        Expanded(
+                          child: _buildActionCard(
+                            icon: Icons.history,
+                            title: 'Historique',
+                            onTap: () {
+                              // TODO: Navigation vers historique
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 25),
+                  ],
+
+                  // Section des livraisons
+                  Text(
+                    isDriver ? 'Livraisons assignées' : 'Livraisons en cours',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+                  FutureBuilder<List<dynamic>>(
+                    future: isDriver ? apiService.getLivreurLivraisons() : apiService.getClientDemandes(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      final livraisons = snapshot.data ?? [];
+                      if (livraisons.isEmpty) {
+                        return Center(
+                          child: Text(
+                            isDriver 
+                              ? 'Aucune livraison assignée'
+                              : 'Aucune livraison en cours'
+                          ),
+                        );
+                      }
+
+                      return ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: livraisons.length,
+                        itemBuilder: (context, index) {
+                          final livraison = livraisons[index];
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 15),
+                            padding: const EdgeInsets.all(15),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(15),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.grey.withOpacity(0.1),
+                                  spreadRadius: 1,
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      'Commande #${livraison.id}',
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 5,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.primaryColor.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Text(
+                                        livraison.statut,
+                                        style: const TextStyle(
+                                          color: AppTheme.primaryColor,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 10),
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.location_on_outlined,
+                                      color: Colors.grey,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 5),
+                                    Expanded(
+                                      child: Text(
+                                        livraison.adresse,
+                                        style: const TextStyle(
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 15),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      'Prix: ${livraison.prix}€',
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        // TODO: Navigation vers détails
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppTheme.primaryColor,
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                      ),
+                                      child: Text(isDriver ? 'Voir détails' : 'Suivre'),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          );
+                        },
                   );
                 },
               ),
             ],
           ),
+            ),
+          ),
+          // Écran des livraisons
+          Container(
+            color: Colors.white,
+            child: const Center(
+              child: Text('Liste des livraisons'),
+            ),
+          ),
+          // Écran de suivi
+          const TrackScreen(),
+          // Écran des messages
+          const MessagesScreen(),
+          // Écran du profil
+          const ProfileScreen(),
+        ],
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+          _pageController.animateToPage(
+            index,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+        },
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.white,
+        selectedItemColor: AppTheme.primaryColor,
+        unselectedItemColor: Colors.grey,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Accueil',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.list_alt),
+            label: 'Livraisons',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.map),
+            label: 'Suivi',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.message),
+            label: 'Messages',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profil',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionCard({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              spreadRadius: 1,
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Icon(
+              icon,
+              size: 30,
+              color: AppTheme.primaryColor,
+            ),
+            const SizedBox(height: 10),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       ),
     );
