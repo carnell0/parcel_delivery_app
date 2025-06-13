@@ -85,8 +85,8 @@ class ApiService with ChangeNotifier {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        if (data['utilisateur'] != null) {
-          _utilisateur = Utilisateur.fromJson(data['utilisateur']);
+        if (data['user'] != null) {
+          _utilisateur = Utilisateur.fromJson(data['user']);
           notifyListeners();
         }
       } else if (response.statusCode == 401) {
@@ -209,8 +209,8 @@ class ApiService with ChangeNotifier {
         await prefs.setString('access_token', _accessToken!);
         await prefs.setString('refresh_token', _refreshToken!);
 
-        if (response.data['utilisateur'] != null) {
-          _utilisateur = Utilisateur.fromJson(response.data['utilisateur']);
+        if (response.data['user'] != null) {
+          _utilisateur = Utilisateur.fromJson(response.data['user']);
           notifyListeners();
         }
 
@@ -929,6 +929,4 @@ class ApiService with ChangeNotifier {
     // throw Exception('Failed to load pending deliveries');
     return []; // Temporary placeholder
   }
-
-  getDriverActiveDeliveries() {}
 }

@@ -40,6 +40,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         if (response['success']) {
           final utilisateur = apiService.utilisateur;
+          debugPrint('Role utilisateur: ${utilisateur?.role}');
           if (utilisateur != null && utilisateur.role == 'livreur') {
             Navigator.pushReplacementNamed(context, '/driver/home');
           } else {
