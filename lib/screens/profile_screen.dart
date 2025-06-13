@@ -13,9 +13,9 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  bool _isLoading = true;
   Map<String, dynamic>? _utilisateurData;
-  bool _isSectionExpanded = true; // Par défaut, la section est ouverte
+  bool _isLoading = true;
+  bool _isSectionExpanded = false;
 
   @override
   void initState() {
@@ -24,43 +24,114 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _loadSectionState();
   }
 
-  // Charger l'état de la section
   Future<void> _loadSectionState() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _isSectionExpanded = prefs.getBool('profile_section_expanded') ?? true;
+      _isSectionExpanded = prefs.getBool('isSectionExpanded') ?? false;
     });
   }
 
-  // Sauvegarder l'état de la section
-  Future<void> _saveSectionState(bool isExpanded) async {
+  Future<void> _saveSectionState(bool expanded) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('profile_section_expanded', isExpanded);
+    await prefs.setBool('isSectionExpanded', expanded);
   }
 
   Future<void> _loadUtilisateurData() async {
-    final apiService = Provider.of<ApiService>(context, listen: false);
     try {
-      final response = await apiService.getCurrentUtilisateur();
-      print('Données utilisateur reçues: $response'); // Debug log
+      final apiService = Provider.of<ApiService>(context, listen: false);
+      final data = await apiService.getCurrentUtilisateur();
+      print('Profile Data: $data'); // Debug log
       setState(() {
-        _utilisateurData = response;
+        _utilisateurData = data;
         _isLoading = false;
       });
     } catch (e) {
-      print('Erreur lors du chargement du profil: $e'); // Debug log
+      print('Error loading profile: $e');
       setState(() {
         _isLoading = false;
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Erreur lors du chargement du profil'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Erreur lors du chargement du profil: $e')),
         );
       }
     }
+  }
+
+  Widget _buildInfoRow({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: Colors.grey[600]),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProfileOption({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    Color? textColor,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        child: Row(
+          children: [
+            Icon(icon, size: 24, color: textColor ?? Colors.grey[800]),
+            const SizedBox(width: 16),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 16,
+                color: textColor ?? Colors.grey[800],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const Spacer(),
+            Icon(
+              Icons.chevron_right,
+              color: textColor ?? Colors.grey[400],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDivider() {
+    return Divider(
+      height: 1,
+      thickness: 1,
+      color: Colors.grey[200],
+    );
   }
 
   @override
@@ -84,139 +155,138 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             // En-tête du profil
             Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              padding: const EdgeInsets.all(24),
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    const Color(0xFF757575).withOpacity(0.9),
+                    const Color(0xFF9E9E9E).withOpacity(0.8),
+                  ],
+                ),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
-                    spreadRadius: 1,
-                    blurRadius: 3,
-                    offset: const Offset(0, 1),
+                    color: const Color(0xFF757575).withOpacity(0.2),
+                    spreadRadius: 2,
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
-          child: Column(
-            children: [
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
                   // Avatar avec icône de profil
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryColor.withOpacity(0.1),
+                      color: Colors.white,
                       shape: BoxShape.circle,
-                    ),
-                    child: CircleAvatar(
-                      radius: 40,
-                      backgroundColor: AppTheme.primaryColor,
-                      child: const Icon(
-                        Icons.person,
-                        size: 40,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  
-                  // Nom complet
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[50],
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '${_utilisateurData?['nom'] ?? ''} ${_utilisateurData?['prenom'] ?? ''}',
-                style: const TextStyle(
-                  fontSize: 24,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  // Badge de rôle
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isDriver ? Colors.green[50] : Colors.blue[50],
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: isDriver ? Colors.green[200]! : Colors.blue[200]!,
-                        width: 1,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          isDriver ? Icons.delivery_dining : Icons.shopping_bag,
-                          size: 18,
-                          color: isDriver ? Colors.green[700] : Colors.blue[700],
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          isDriver ? 'Livreur' : 'Client',
-                          style: TextStyle(
-                            fontSize: 15,
-                            color: isDriver ? Colors.green[700] : Colors.blue[700],
-                            fontWeight: FontWeight.w600,
-                          ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          spreadRadius: 2,
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
                         ),
                       ],
                     ),
-                  ),
-                  
-                  const SizedBox(height: 24),
-                  
-                  // Informations supplémentaires pour les livreurs
-                  if (isDriver) ...[
-                    ExpansionTile(
-                      initiallyExpanded: _isSectionExpanded,
-                      onExpansionChanged: (expanded) {
-                        setState(() {
-                          _isSectionExpanded = expanded;
-                        });
-                        _saveSectionState(expanded);
-                      },
-                      title: const Text(
-                        'Informations du véhicule',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
+                    child: CircleAvatar(
+                      radius: 40,
+                      backgroundColor: Colors.white,
+                      child: Icon(
+                        Icons.person,
+                        size: 40,
+                        color: AppTheme.primaryColor,
                       ),
+                    ),
+                  ),
+                  const SizedBox(width: 20),
+                  // Informations utilisateur
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Nom complet
                         Container(
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                           decoration: BoxDecoration(
-                            color: Colors.grey[100],
+                            color: Colors.white.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.2),
+                              width: 1,
+                            ),
                           ),
-                          child: Column(
+                          child: Text(
+                            '${_utilisateurData?['nom'] ?? _utilisateurData?['last_name'] ?? ''} ${_utilisateurData?['prenom'] ?? _utilisateurData?['first_name'] ?? ''}',
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.5,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        
+                        // Email
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            _utilisateurData?['email'] ?? '',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.white70,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        
+                        // Badge de rôle
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isDriver ? Colors.green.withOpacity(0.2) : Colors.blue.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: isDriver ? Colors.green[200]! : Colors.blue[200]!,
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              _buildInfoRow(
-                                icon: Icons.directions_car,
-                                label: 'Véhicule',
-                                value: _utilisateurData?['typeVehicule'] ?? 'Non spécifié',
+                              Icon(
+                                isDriver ? Icons.delivery_dining : Icons.shopping_bag,
+                                size: 16,
+                                color: Colors.white,
                               ),
-                              const SizedBox(height: 8),
-                              _buildInfoRow(
-                                icon: Icons.confirmation_number,
-                                label: 'Immatriculation',
-                                value: _utilisateurData?['numeroImmatriculation'] ?? 'Non spécifié',
+                              const SizedBox(width: 8),
+                              Text(
+                                isDriver ? 'Livreur' : 'Client',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ],
                           ),
                         ),
                       ],
                     ),
-                  ],
+                  ),
                 ],
               ),
             ),
@@ -312,78 +382,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildInfoRow({
-    required IconData icon,
-    required String label,
-    required String value,
-  }) {
-    return Row(
-      children: [
-        Icon(icon, size: 20, color: Colors.grey[600]),
-        const SizedBox(width: 8),
-        Text(
-          '$label: ',
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.grey[600],
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildProfileOption({
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-    Color? textColor,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              color: textColor ?? Colors.grey[800],
-              size: 24,
-            ),
-            const SizedBox(width: 16),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 16,
-                color: textColor ?? Colors.grey[800],
-              ),
-            ),
-            const Spacer(),
-            Icon(
-              Icons.chevron_right,
-              color: textColor ?? Colors.grey[400],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDivider() {
-    return Divider(
-      height: 1,
-      thickness: 1,
-      color: Colors.grey[200],
     );
   }
 }

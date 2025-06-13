@@ -876,14 +876,17 @@ class ApiService with ChangeNotifier {
 
   Future<Map<String, dynamic>> getCurrentUtilisateur() async {
     try {
+      print('Access Token: $_accessToken'); // Debug log
+      print('Request URL: ${_baseUrl}${ApiConfig.currentUtilisateurEndpoint}'); // Debug log
       final response = await _dio.get(
-        '${_baseUrl}${ApiConfig.utilisateurProfileEndpoint}',
+        '${_baseUrl}${ApiConfig.currentUtilisateurEndpoint}',
         options: Options(
           headers: {
             'Authorization': 'Bearer $_accessToken',
           },
         ),
       );
+      print('API Response: ${response.data}'); // Debug log
       return response.data;
     } catch (e) {
       print('Get current utilisateur error: ${e.toString()}');
