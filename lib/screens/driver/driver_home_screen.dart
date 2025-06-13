@@ -3,7 +3,6 @@ import 'package:parcel_delivery/models/livraison.dart';
 import 'package:parcel_delivery/services/api_service.dart';
 import 'package:provider/provider.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:carousel_slider/carousel_slider.dart';
 import 'package:parcel_delivery/screens/driver/pending_deliveries_screen.dart';
 import 'package:parcel_delivery/screens/driver/driver_map_screen.dart';
 import 'package:parcel_delivery/screens/driver/driver_profile_screen.dart';
@@ -19,9 +18,9 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
   int _selectedIndex = 0;
   final List<Widget> _screens = [
     const _HomeTab(),
-    const PendingDeliveriesScreen(),
-    const DriverMapScreen(),
-    const DriverProfileScreen(),
+    //const PendingDeliveriesScreen(),
+    //const DriverMapScreen(),
+    //const DriverProfileScreen(),
   ];
 
   List<Livraison> pendingDeliveries = [];
@@ -52,34 +51,34 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
     }
   }
 
-  Future<void> _acceptDelivery(int deliveryId) async {
-    try {
-      final position = await Geolocator.getCurrentPosition();
-      final apiService = Provider.of<ApiService>(context, listen: false);
-      await apiService.acceptDriverDelivery(
-        deliveryId: deliveryId,
-        position: position,
-      );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Livraison acceptée avec succès'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        _loadPendingDeliveries();
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString()),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
+  // Future<void> _acceptDelivery(int deliveryId) async {
+  //   try {
+  //     final position = await Geolocator.getCurrentPosition();
+  //     final apiService = Provider.of<ApiService>(context, listen: false);
+  //     await apiService.acceptDriverDelivery(
+  //       deliveryId: deliveryId,
+  //       position: position,
+  //     );
+  //     if (mounted) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         const SnackBar(
+  //           content: Text('Livraison acceptée avec succès'),
+  //           backgroundColor: Colors.green,
+  //         ),
+  //       );
+  //       _loadPendingDeliveries();
+  //     }
+  //   } catch (e) {
+  //     if (mounted) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(
+  //           content: Text(e.toString()),
+  //           backgroundColor: Colors.red,
+  //         ),
+  //       );
+  //     }
+  //   }
+  // }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -132,6 +131,20 @@ class _HomeTabState extends State<_HomeTab> {
     'assets/images/banner2.jpg',
     'assets/images/banner3.jpg',
   ];
+  int _currentPage = 0;
+  late final PageController _pageController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -139,35 +152,59 @@ class _HomeTabState extends State<_HomeTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Carousel d'images
-          CarouselSlider(
-            options: CarouselOptions(
-              height: 200.0,
-              autoPlay: true,
-              enlargeCenterPage: true,
-              aspectRatio: 16/9,
-              autoPlayCurve: Curves.fastOutSlowIn,
-              enableInfiniteScroll: true,
-              autoPlayAnimationDuration: const Duration(milliseconds: 800),
-              viewportFraction: 0.8,
-            ),
-            items: _carouselImages.map((image) {
-              return Builder(
-                builder: (BuildContext context) {
-                  return Container(
-                    width: MediaQuery.of(context).size.width,
-                    margin: const EdgeInsets.symmetric(horizontal: 5.0),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8.0),
-                      image: DecorationImage(
-                        image: AssetImage(image),
-                        fit: BoxFit.cover,
+          // Carousel natif avec PageView
+          SizedBox(
+            height: 200,
+            child: Stack(
+              alignment: Alignment.bottomCenter,
+              children: [
+                PageView.builder(
+                  controller: _pageController,
+                  itemCount: _carouselImages.length,
+                  onPageChanged: (index) {
+                    setState(() {
+                      _currentPage = index;
+                    });
+                  },
+                  itemBuilder: (context, index) {
+                    return Container(
+                      margin: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 10),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8.0),
+                        image: DecorationImage(
+                          image: AssetImage(_carouselImages[index]),
+                          fit: BoxFit.cover,
+                        ),
                       ),
-                    ),
-                  );
-                },
-              );
-            }).toList(),
+                    );
+                  },
+                ),
+                // Indicateurs de page
+                Positioned(
+                  bottom: 10,
+                  left: 0,
+                  right: 0,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(_carouselImages.length, (index) {
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        width: _currentPage == index ? 16 : 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: _currentPage == index
+                              ? const Color(0xFFF28C38)
+                              : Colors.white,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 24),
 
@@ -210,12 +247,12 @@ class _HomeTabState extends State<_HomeTab> {
             child: ElevatedButton(
               onPressed: () {
                 // Naviguer vers l'écran des livraisons en attente
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const PendingDeliveriesScreen(),
-                  ),
-                );
+                // Navigator.push(
+                //   context,
+                //   MaterialPageRoute(
+                //     builder: (context) => const PendingDeliveriesScreen(),
+                //   ),
+                // );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFF28C38),
@@ -274,4 +311,4 @@ class _HomeTabState extends State<_HomeTab> {
       ),
     );
   }
-} 
+}

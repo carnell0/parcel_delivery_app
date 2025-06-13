@@ -3,8 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:parcel_delivery/services/api_service.dart';
 import 'package:parcel_delivery/theme/app_theme.dart';
 import 'package:parcel_delivery/screens/splash_screen.dart';
-import 'package:parcel_delivery/screens/login_screen.dart';
-import 'package:parcel_delivery/screens/utilisateur/register_screen.dart';
+import 'package:parcel_delivery/screens/auth/login_screen.dart';
+import 'package:parcel_delivery/screens/auth/register_screen.dart';
 import 'package:parcel_delivery/screens/utilisateur/home_screen.dart';
 import 'package:parcel_delivery/screens/utilisateur/track_screen.dart';
 

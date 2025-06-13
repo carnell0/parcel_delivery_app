@@ -43,10 +43,10 @@ class _TrackScreenState extends State<TrackScreen> {
           _livraison = livraison;
           _isLoading = false;
         });
-        // Center map on delivery location
-        if (livraison.latitudeArrivee != null && livraison.longitudeArrivee != null) {
+        // Center map on delivery departure location if available
+        if (livraison.latitudeDepart != null && livraison.longitudeDepart != null) {
           _mapController.move(
-            LatLng(livraison.latitudeArrivee!, livraison.longitudeArrivee!),
+            LatLng(livraison.latitudeDepart!, livraison.longitudeDepart!),
             _currentZoom,
           );
         }
@@ -89,14 +89,14 @@ class _TrackScreenState extends State<TrackScreen> {
           FlutterMap(
             mapController: _mapController,
             options: MapOptions(
-              initialCenter: _livraison?.latitudeArrivee != null && _livraison?.longitudeArrivee != null
-                  ? LatLng(_livraison!.latitudeArrivee!, _livraison!.longitudeArrivee!)
+              initialCenter: _livraison?.latitudeDepart != null && _livraison?.longitudeDepart != null
+                  ? LatLng(_livraison!.latitudeDepart!, _livraison!.longitudeDepart!)
                   : const LatLng(48.8566, 2.3522),
               initialZoom: _currentZoom,
               onMapReady: () {
-                if (_livraison?.latitudeArrivee != null && _livraison?.longitudeArrivee != null) {
+                if (_livraison?.latitudeDepart != null && _livraison?.longitudeDepart != null) {
                   _mapController.move(
-                    LatLng(_livraison!.latitudeArrivee!, _livraison!.longitudeArrivee!),
+                    LatLng(_livraison!.latitudeDepart!, _livraison!.longitudeDepart!),
                     _currentZoom,
                   );
                 }
@@ -107,6 +107,22 @@ class _TrackScreenState extends State<TrackScreen> {
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'com.example.parcel_delivery',
               ),
+              if (_livraison?.latitudeDepart != null && _livraison?.longitudeDepart != null) ...[
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: LatLng(_livraison!.latitudeDepart!, _livraison!.longitudeDepart!),
+                      width: 80,
+                      height: 80,
+                      child: const Icon(
+                        Icons.location_on,
+                        color: Colors.green,
+                        size: 40,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               if (_livraison?.latitudeArrivee != null && _livraison?.longitudeArrivee != null) ...[
                 MarkerLayer(
                   markers: [
@@ -115,7 +131,7 @@ class _TrackScreenState extends State<TrackScreen> {
                       width: 80,
                       height: 80,
                       child: const Icon(
-                        Icons.location_on,
+                        Icons.flag,
                         color: Colors.red,
                         size: 40,
                       ),
@@ -126,11 +142,9 @@ class _TrackScreenState extends State<TrackScreen> {
                   polylines: [
                     Polyline(
                       points: [
+                        if (_livraison?.latitudeDepart != null && _livraison?.longitudeDepart != null)
+                          LatLng(_livraison!.latitudeDepart!, _livraison!.longitudeDepart!),
                         LatLng(_livraison!.latitudeArrivee!, _livraison!.longitudeArrivee!),
-                        LatLng(
-                          _livraison!.latitudeArrivee! + 0.01,
-                          _livraison!.longitudeArrivee! + 0.01,
-                        ),
                       ],
                       color: Colors.blue,
                       strokeWidth: 4,

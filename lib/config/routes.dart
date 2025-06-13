@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import '../screens/login_screen.dart';
-import '../screens/utilisateur/register_screen.dart';
-import '../screens/otp_verification_screen.dart';
+import '../screens/auth/login_screen.dart';
+import '../screens/auth/register_screen.dart';
+import '../screens/auth/otp_verification_screen.dart';
 import '../screens/home_screen.dart';
-import '../screens/profile_screen.dart';
-import '../screens/messages_screen.dart';
+import '../screens/utilisateur/profile_screen.dart';
+import '../screens/utilisateur/messages_screen.dart';
 import '../screens/delivery/delivery_list_screen.dart';
 import '../screens/delivery/delivery_details_screen.dart';
 import '../screens/delivery/create_delivery_screen.dart';

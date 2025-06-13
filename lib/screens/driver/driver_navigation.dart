@@ -16,9 +16,9 @@ class _DriverNavigationState extends State<DriverNavigation> {
 
   final List<Widget> _screens = [
     const DriverHomeScreen(),
-    const PendingDeliveriesScreen(),
-    const DriverMapScreen(),
-    const DriverProfileScreen(),
+    //const PendingDeliveriesScreen(),
+    //const DriverMapScreen(),
+    //const DriverProfileScreen(),
   ];
 
   void _onItemTapped(int index) {

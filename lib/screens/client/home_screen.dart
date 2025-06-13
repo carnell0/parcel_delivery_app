@@ -4,7 +4,7 @@ import 'package:parcel_delivery/services/api_service.dart';
 import 'package:parcel_delivery/screens/client/delivery_form_screen.dart';
 import 'package:parcel_delivery/screens/client/track_screen.dart';
 import 'package:parcel_delivery/screens/client/deliveries_screen.dart';
-import 'package:parcel_delivery/screens/profile_screen.dart';
+import 'package:parcel_delivery/screens/utilisateur/profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);

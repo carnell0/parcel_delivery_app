@@ -919,4 +919,16 @@ class ApiService with ChangeNotifier {
     await prefs.remove('refresh_token');
     notifyListeners();
   }
+  Future<List<Livraison>> getDriverPendingDeliveries() async {
+    // TODO: Replace with actual API call logic
+    // Example implementation:
+    // final response = await http.get(Uri.parse('YOUR_API_ENDPOINT'));
+    // if (response.statusCode == 200) {
+    //   // Parse response and return list of Livraison
+    // }
+    // throw Exception('Failed to load pending deliveries');
+    return []; // Temporary placeholder
+  }
+
+  getDriverActiveDeliveries() {}
 }
