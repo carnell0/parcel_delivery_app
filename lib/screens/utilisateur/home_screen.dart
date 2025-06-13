@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:parcel_delivery/screens/utilisateur/track_screen.dart';
 import 'package:parcel_delivery/theme/app_theme.dart';
 import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
-import '../../screens/profile_screen.dart';
-import '../../screens/track_screen.dart';
-import '../../screens/messages_screen.dart';
+import 'profile_screen.dart';
+import 'messages_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,6 +16,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
   int _currentIndex = 0;
   late final PageController _pageController;
+  int? _selectedDeliveryId; // Ajout pour le suivi
 
   @override
   void initState() {
@@ -83,7 +84,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         backgroundColor: AppTheme.primaryColor,
         elevation: 0,
         actions: [
-          if (_currentIndex == 0) // Afficher l'icône de notifications uniquement sur l'écran d'accueil
+          if (_currentIndex == 0)
             IconButton(
               icon: const Icon(Icons.notifications_outlined),
               onPressed: () {
@@ -94,7 +95,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       ),
       body: PageView(
         controller: _pageController,
-        physics: const NeverScrollableScrollPhysics(), // Désactive le défilement horizontal
+        physics: const NeverScrollableScrollPhysics(),
         onPageChanged: (index) {
           setState(() {
             _currentIndex = index;
@@ -103,7 +104,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         children: [
           // Écran principal
           SingleChildScrollView(
-        child: Padding(
+            child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -146,22 +147,22 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         ),
                         const SizedBox(width: 15),
                         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
                                 'Bonjour, ${utilisateur?.prenom ?? "Utilisateur"}',
-                style: const TextStyle(
+                                style: const TextStyle(
                                   fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
                               const SizedBox(height: 5),
                               Text(
-                                isDriver 
-                                  ? 'Que souhaitez-vous livrer aujourd\'hui ?'
-                                  : 'Que souhaitez-vous faire aujourd\'hui ?',
+                                isDriver
+                                    ? 'Que souhaitez-vous livrer aujourd\'hui ?'
+                                    : 'Que souhaitez-vous faire aujourd\'hui ?',
                                 style: const TextStyle(
                                   fontSize: 14,
                                   color: Colors.white,
@@ -212,8 +213,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                               children: [
                                 Text(
                                   'Statut actuel',
-                style: TextStyle(
-                  fontSize: 16,
+                                  style: TextStyle(
+                                    fontSize: 16,
                                     color: Colors.grey,
                                   ),
                                 ),
@@ -227,7 +228,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                     SizedBox(width: 8),
                                     Text(
                                       'Disponible',
-                style: TextStyle(
+                                      style: TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,
                                       ),
@@ -304,9 +305,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       if (livraisons.isEmpty) {
                         return Center(
                           child: Text(
-                            isDriver 
-                              ? 'Aucune livraison assignée'
-                              : 'Aucune livraison en cours'
+                            isDriver
+                                ? 'Aucune livraison assignée'
+                                : 'Aucune livraison en cours',
                           ),
                         );
                       }
@@ -396,7 +397,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                     ),
                                     ElevatedButton(
                                       onPressed: () {
-                                        // TODO: Navigation vers détails
+                                        setState(() {
+                                          _selectedDeliveryId = livraison.id;
+                                          _currentIndex = 2; // Aller à l'onglet suivi
+                                          _pageController.jumpToPage(2);
+                                        });
                                       },
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: AppTheme.primaryColor,
@@ -413,11 +418,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                             ),
                           );
                         },
-                  );
-                },
+                      );
+                    },
+                  ),
+                ],
               ),
-            ],
-          ),
             ),
           ),
           // Écran des livraisons
@@ -428,7 +433,27 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             ),
           ),
           // Écran de suivi
-          const TrackScreen(),
+          Builder(
+            builder: (context) {
+              if (_selectedDeliveryId == null) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Icon(Icons.map, size: 60, color: Colors.grey),
+                      SizedBox(height: 16),
+                      Text(
+                        'Sélectionnez une livraison à suivre depuis la liste.',
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                );
+              }
+              return TrackScreen(deliveryId: _selectedDeliveryId!);
+            },
+          ),
           // Écran des messages
           const MessagesScreen(),
           // Écran du profil

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:parcel_delivery/screens/driver/driver_home_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:parcel_delivery/services/api_service.dart';
 import 'package:parcel_delivery/theme/app_theme.dart';
 import 'package:parcel_delivery/screens/splash_screen.dart';
-import 'package:parcel_delivery/screens/login_screen.dart';
-import 'package:parcel_delivery/screens/utilisateur/register_screen.dart';
+import 'package:parcel_delivery/screens/auth/login_screen.dart';
+import 'package:parcel_delivery/screens/auth/register_screen.dart';
 import 'package:parcel_delivery/screens/utilisateur/home_screen.dart';
 import 'package:parcel_delivery/screens/utilisateur/track_screen.dart';
 
@@ -21,6 +22,7 @@ void main() {
           '/login': (context) => const LoginScreen(),
           '/register': (context) => const RegisterScreen(),
           '/home': (context) => const HomeScreen(),
+          '/driver/home' : (context) => const DriverHomeScreen(),
           '/track': (context) {
             final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
             final deliveryId = args?['deliveryId'] as int?;

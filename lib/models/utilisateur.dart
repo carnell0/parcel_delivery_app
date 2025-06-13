@@ -23,15 +23,17 @@ class Utilisateur {
 
   factory Utilisateur.fromJson(Map<String, dynamic> json) {
     return Utilisateur(
-      id: json['id'] as int,
-      nom: json['nom'] as String,
-      prenom: json['prenom'] as String,
-      email: json['email'] as String,
-      telephone: json['telephone'] as String,
-      motDePasse: json['mot_de_passe'] as String,
-      role: json['role'] as String,
-      dateCreation: DateTime.parse(json['date_creation'] as String),
-      photoUrl: json['photo_url'] as String?,
+      id: json['id'] ?? 0,
+      nom: json['nom'] ?? 'Inconnu',
+      prenom: json['prenom'] ?? 'Inconnu',
+      email: json['email'] ?? 'inconnu@example.com',
+      telephone: json['telephone'] ?? '0000000000',
+      motDePasse: json['mot_de_passe'] ?? '',
+      role: json['role'] ?? 'client',
+      dateCreation: json['date_creation'] != null
+          ? DateTime.parse(json['date_creation'].toString())
+          : DateTime.now(),
+      photoUrl: json['photo_url'],
     );
   }
 
@@ -48,4 +50,4 @@ class Utilisateur {
       'photo_url': photoUrl,
     };
   }
-} 
+}
