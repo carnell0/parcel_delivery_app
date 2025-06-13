@@ -1,43 +1,46 @@
 class Demande {
   final int id;
   final int utilisateurId;
-  final String? natureColis;
-  final String? dimensions;
+  final int siteId;
+  final String statut;
+  final DateTime dateDemande;
+  final String? description;
+  final String? adresse;
+  final String? typeColis;
   final double? poids;
-  final String? photoColis;
-  final String adresseDepart;
-  final String adresseDestination;
-  final String modeLivraison;
-  final String statutDemande;
-  final DateTime dateCreation;
+  final String? dimensions;
+  final String? instructions;
+  final String? photoUrl;
 
   Demande({
     required this.id,
     required this.utilisateurId,
-    this.natureColis,
-    this.dimensions,
+    required this.siteId,
+    required this.statut,
+    required this.dateDemande,
+    this.description,
+    this.adresse,
+    this.typeColis,
     this.poids,
-    this.photoColis,
-    required this.adresseDepart,
-    required this.adresseDestination,
-    required this.modeLivraison,
-    required this.statutDemande,
-    required this.dateCreation,
+    this.dimensions,
+    this.instructions,
+    this.photoUrl,
   });
 
   factory Demande.fromJson(Map<String, dynamic> json) {
     return Demande(
       id: json['id'] as int,
       utilisateurId: json['utilisateur_id'] as int,
-      natureColis: json['nature_colis'] as String?,
+      siteId: json['site_id'] as int,
+      statut: json['statut'] as String,
+      dateDemande: DateTime.parse(json['date_demande'] as String),
+      description: json['description'] as String?,
+      adresse: json['adresse'] as String?,
+      typeColis: json['type_colis'] as String?,
+      poids: json['poids'] as double?,
       dimensions: json['dimensions'] as String?,
-      poids: (json['poids'] as num?)?.toDouble(),
-      photoColis: json['photo_colis'] as String?,
-      adresseDepart: json['adresse_depart'] as String,
-      adresseDestination: json['adresse_destination'] as String,
-      modeLivraison: json['mode_livraison'] as String,
-      statutDemande: json['statut_demande'] as String,
-      dateCreation: DateTime.parse(json['date_creation'] as String),
+      instructions: json['instructions'] as String?,
+      photoUrl: json['photo_url'] as String?,
     );
   }
 
@@ -45,15 +48,16 @@ class Demande {
     return {
       'id': id,
       'utilisateur_id': utilisateurId,
-      'nature_colis': natureColis,
-      'dimensions': dimensions,
+      'site_id': siteId,
+      'statut': statut,
+      'date_demande': dateDemande.toIso8601String(),
+      'description': description,
+      'adresse': adresse,
+      'type_colis': typeColis,
       'poids': poids,
-      'photo_colis': photoColis,
-      'adresse_depart': adresseDepart,
-      'adresse_destination': adresseDestination,
-      'mode_livraison': modeLivraison,
-      'statut_demande': statutDemande,
-      'date_creation': dateCreation.toIso8601String(),
+      'dimensions': dimensions,
+      'instructions': instructions,
+      'photo_url': photoUrl,
     };
   }
 } 

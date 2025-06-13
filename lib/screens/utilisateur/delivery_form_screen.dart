@@ -34,7 +34,7 @@ class DeliveryFormScreenState extends State<DeliveryFormScreen> {
   @override
   Widget build(BuildContext context) {
     final apiService = Provider.of<ApiService>(context);
-    final user = apiService.user;
+    final utilisateur = apiService.utilisateur;
 
     return Scaffold(
       appBar: AppBar(
@@ -174,7 +174,7 @@ class DeliveryFormScreenState extends State<DeliveryFormScreen> {
                             if (_formKey.currentState!.validate()) {
                               setState(() => _isLoading = true);
                               final success = await apiService.createOrder(
-                                utilisateurId: user!.id,
+                                utilisateurId: utilisateur!.id,
                                 natureColis: _descriptionController.text,
                                 dimensions: _receiverAddressController.text,
                                 poids: double.parse(_weightController.text),
@@ -185,7 +185,7 @@ class DeliveryFormScreenState extends State<DeliveryFormScreen> {
                               );
                               setState(() => _isLoading = false);
                               if (success) {
-                                Navigator.pushReplacementNamed(context, '/user/deliveries');
+                                Navigator.pushReplacementNamed(context, '/utilisateur/deliveries');
                               } else {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(

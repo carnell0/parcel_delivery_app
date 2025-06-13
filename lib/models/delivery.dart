@@ -1,42 +1,39 @@
-import 'package:latlong2/latlong.dart';
-
 class Delivery {
   final int id;
   final String status;
-  final String lastUpdate;
-  final LatLng currentLocation;
-  final String? driverName;
-  final String? driverPhone;
-  final String? estimatedArrival;
-  final String pickupAddress;
-  final String deliveryAddress;
+  final String? currentLocation;
+  final double? latitude;
+  final double? longitude;
+  final DateTime createdAt;
+  final DateTime? updatedAt;
+  final int utilisateurId;
+  final int? livreurId;
 
   Delivery({
     required this.id,
     required this.status,
-    required this.lastUpdate,
-    required this.currentLocation,
-    this.driverName,
-    this.driverPhone,
-    this.estimatedArrival,
-    required this.pickupAddress,
-    required this.deliveryAddress,
+    this.currentLocation,
+    this.latitude,
+    this.longitude,
+    required this.createdAt,
+    this.updatedAt,
+    required this.utilisateurId,
+    this.livreurId,
   });
 
   factory Delivery.fromJson(Map<String, dynamic> json) {
     return Delivery(
-      id: json['id'],
-      status: json['status'],
-      lastUpdate: json['last_update'],
-      currentLocation: LatLng(
-        json['current_location']['latitude'],
-        json['current_location']['longitude'],
-      ),
-      driverName: json['driver_name'],
-      driverPhone: json['driver_phone'],
-      estimatedArrival: json['estimated_arrival'],
-      pickupAddress: json['pickup_address'],
-      deliveryAddress: json['delivery_address'],
+      id: json['id'] as int,
+      status: json['status'] as String,
+      currentLocation: json['current_location'] as String?,
+      latitude: (json['latitude'] as num?)?.toDouble(),
+      longitude: (json['longitude'] as num?)?.toDouble(),
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'] as String)
+          : null,
+      utilisateurId: json['utilisateur_id'] as int,
+      livreurId: json['livreur_id'] as int?,
     );
   }
 
@@ -44,16 +41,13 @@ class Delivery {
     return {
       'id': id,
       'status': status,
-      'last_update': lastUpdate,
-      'current_location': {
-        'latitude': currentLocation.latitude,
-        'longitude': currentLocation.longitude,
-      },
-      'driver_name': driverName,
-      'driver_phone': driverPhone,
-      'estimated_arrival': estimatedArrival,
-      'pickup_address': pickupAddress,
-      'delivery_address': deliveryAddress,
+      'current_location': currentLocation,
+      'latitude': latitude,
+      'longitude': longitude,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt?.toIso8601String(),
+      'utilisateur_id': utilisateurId,
+      'livreur_id': livreurId,
     };
   }
-}
+} 

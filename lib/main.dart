@@ -4,9 +4,9 @@ import 'package:parcel_delivery/services/api_service.dart';
 import 'package:parcel_delivery/theme/app_theme.dart';
 import 'package:parcel_delivery/screens/splash_screen.dart';
 import 'package:parcel_delivery/screens/login_screen.dart';
-import 'package:parcel_delivery/screens/user/register_screen.dart';
-import 'package:parcel_delivery/screens/user/home_screen.dart';
-import 'package:parcel_delivery/screens/user/track_screen.dart';
+import 'package:parcel_delivery/screens/utilisateur/register_screen.dart';
+import 'package:parcel_delivery/screens/utilisateur/home_screen.dart';
+import 'package:parcel_delivery/screens/utilisateur/track_screen.dart';
 
 void main() {
   runApp(
@@ -21,7 +21,18 @@ void main() {
           '/login': (context) => const LoginScreen(),
           '/register': (context) => const RegisterScreen(),
           '/home': (context) => const HomeScreen(),
-          '/track': (context) => const TrackScreen(),
+          '/track': (context) {
+            final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+            final deliveryId = args?['deliveryId'] as int?;
+            if (deliveryId == null) {
+              return const Scaffold(
+                body: Center(
+                  child: Text('ID de livraison non spécifié'),
+                ),
+              );
+            }
+            return TrackScreen(deliveryId: deliveryId);
+          },
         },
       ),
     ),

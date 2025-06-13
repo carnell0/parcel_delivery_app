@@ -4,7 +4,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import '../models/user.dart';
+import '../models/utilisateur.dart';
 import '../models/demande.dart';
 import '../models/livraison.dart';
 import '../models/otp.dart';
@@ -19,7 +19,7 @@ import 'package:http/http.dart' as http;
 
 class ApiService with ChangeNotifier {
   final String _baseUrl = ApiConfig.baseUrl;
-  User? _user;
+  Utilisateur? _utilisateur;
   String? _accessToken;
   String? _refreshToken;
   late Dio _dio;
@@ -29,7 +29,7 @@ class ApiService with ChangeNotifier {
   static const String _tokenKey = 'auth_token';
   static const String _refreshTokenKey = 'refresh_token';
 
-  User? get user => _user;
+  Utilisateur? get utilisateur => _utilisateur;
   bool get isConnected => _isConnected;
 
   ApiService() {
@@ -85,15 +85,15 @@ class ApiService with ChangeNotifier {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        if (data['user'] != null) {
-          _user = User.fromJson(data['user']);
+        if (data['utilisateur'] != null) {
+          _utilisateur = Utilisateur.fromJson(data['utilisateur']);
           notifyListeners();
         }
       } else if (response.statusCode == 401) {
         await _clearTokens();
       }
     } catch (e) {
-      print('Error initializing user session: $e');
+      print('Error initializing utilisateur session: $e');
       await _clearTokens();
     }
   }
@@ -209,8 +209,8 @@ class ApiService with ChangeNotifier {
         await prefs.setString('access_token', _accessToken!);
         await prefs.setString('refresh_token', _refreshToken!);
 
-        if (response.data['user'] != null) {
-          _user = User.fromJson(response.data['user']);
+        if (response.data['utilisateur'] != null) {
+          _utilisateur = Utilisateur.fromJson(response.data['utilisateur']);
           notifyListeners();
         }
 
@@ -656,7 +656,7 @@ class ApiService with ChangeNotifier {
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
-        _user = User.fromJson(responseData);
+        _utilisateur = Utilisateur.fromJson(responseData);
         notifyListeners();
         return true;
       }
@@ -702,7 +702,7 @@ class ApiService with ChangeNotifier {
 
       _accessToken = null;
       _refreshToken = null;
-      _user = null;
+      _utilisateur = null;
       notifyListeners();
       return true;
     } catch (e) {
@@ -766,45 +766,39 @@ class ApiService with ChangeNotifier {
     }
   }
 
-  Future<User?> getUserProfile() async {
+  Future<Utilisateur?> getUtilisateurProfile() async {
     try {
-      final response = await http.get(
-        Uri.parse('${_baseUrl}${ApiConfig.userProfileEndpoint}'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $_accessToken',
-        },
+      final response = await _dio.get(
+        '${_baseUrl}${ApiConfig.utilisateurProfileEndpoint}',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $_accessToken',
+          },
+        ),
       );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        _user = User.fromJson(data);
-        notifyListeners();
-        return _user;
-      }
-      return null;
+      final data = response.data;
+      _utilisateur = Utilisateur.fromJson(data);
+      return _utilisateur;
     } catch (e) {
+      print('Error getting utilisateur profile: $e');
       return null;
     }
   }
 
-  Future<Delivery> getDeliveryDetails(int deliveryId) async {
+  Future<Livraison> getDeliveryDetails(int deliveryId) async {
     try {
       final response = await _dio.get(
-        '${_baseUrl}/deliveries/$deliveryId/',
+        '${_baseUrl}${ApiConfig.deliveryDetailsEndpoint}/$deliveryId',
         options: Options(
-          headers: {'Authorization': 'Bearer $_accessToken'},
+          headers: {
+            'Authorization': 'Bearer $_accessToken',
+          },
         ),
       );
-
-      if (response.statusCode == 200) {
-        return Delivery.fromJson(response.data);
-      } else {
-        throw Exception('Failed to load delivery details');
-      }
+      return Livraison.fromJson(response.data);
     } catch (e) {
-      print('Error getting delivery details: $e');
-      throw Exception('Failed to load delivery details: $e');
+      print('Get delivery details error: ${e.toString()}');
+      rethrow;
     }
   }
 
@@ -830,37 +824,34 @@ class ApiService with ChangeNotifier {
     }
   }
 
-  Stream<Delivery> trackDelivery(int deliveryId) async* {
-    while (true) {
-      try {
-        final delivery = await getDeliveryDetails(deliveryId);
-        yield delivery;
-        await Future.delayed(const Duration(seconds: 30)); // Update every 30 seconds
-      } catch (e) {
-        print('Error tracking delivery: $e');
-        await Future.delayed(const Duration(seconds: 5)); // Wait 5 seconds before retrying
+  Stream<Livraison> trackDelivery(int deliveryId) async* {
+    try {
+      while (true) {
+        final livraison = await getDeliveryDetails(deliveryId);
+        yield livraison;
+        await Future.delayed(const Duration(seconds: 5));
       }
+    } catch (e) {
+      print('Track delivery error: ${e.toString()}');
+      rethrow;
     }
   }
 
-  Future<List<Delivery>> getActiveDeliveries() async {
+  Future<List<Livraison>> getActiveDeliveries() async {
     try {
       final response = await _dio.get(
-        '${_baseUrl}/driver/active-deliveries/',
+        '${_baseUrl}${ApiConfig.activeDeliveriesEndpoint}',
         options: Options(
-          headers: {'Authorization': 'Bearer $_accessToken'},
+          headers: {
+            'Authorization': 'Bearer $_accessToken',
+          },
         ),
       );
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = response.data;
-        return data.map((json) => Delivery.fromJson(json)).toList();
-      } else {
-        throw Exception('Failed to load active deliveries');
-      }
+      final List<dynamic> data = response.data;
+      return data.map((json) => Livraison.fromJson(json)).toList();
     } catch (e) {
-      print('Error getting active deliveries: $e');
-      throw Exception('Failed to load active deliveries: $e');
+      print('Get active deliveries error: ${e.toString()}');
+      rethrow;
     }
   }
 
@@ -883,20 +874,20 @@ class ApiService with ChangeNotifier {
     }
   }
 
-  Future<Map<String, dynamic>> getCurrentUser() async {
+  Future<Map<String, dynamic>> getCurrentUtilisateur() async {
     try {
       final response = await _dio.get(
-        ApiConfig.currentUserEndpoint,
-        options: Options(headers: {'Authorization': 'Bearer $_accessToken'}),
+        '${_baseUrl}${ApiConfig.utilisateurProfileEndpoint}',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $_accessToken',
+          },
+        ),
       );
-
-      if (response.statusCode == 200) {
-        return response.data;
-      }
-      throw Exception('Failed to load user data');
-    } on DioException catch (e) {
-      print('Get current user error: ${e.message}');
-      throw Exception('Failed to load user data');
+      return response.data;
+    } catch (e) {
+      print('Get current utilisateur error: ${e.toString()}');
+      rethrow;
     }
   }
 
@@ -919,7 +910,7 @@ class ApiService with ChangeNotifier {
   Future<void> _clearTokens() async {
     _accessToken = null;
     _refreshToken = null;
-    _user = null;
+    _utilisateur = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('access_token');
     await prefs.remove('refresh_token');

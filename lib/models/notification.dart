@@ -69,3 +69,35 @@ class NotificationUser {
     };
   }
 }
+
+class NotificationUtilisateur {
+  final int id;
+  final String nom;
+  final String prenom;
+  final String? photoUrl;
+
+  NotificationUtilisateur({
+    required this.id,
+    required this.nom,
+    required this.prenom,
+    this.photoUrl,
+  });
+
+  factory NotificationUtilisateur.fromJson(Map<String, dynamic> json) {
+    return NotificationUtilisateur(
+      id: json['id'] as int,
+      nom: json['nom'] as String,
+      prenom: json['prenom'] as String,
+      photoUrl: json['photo_url'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'nom': nom,
+      'prenom': prenom,
+      'photo_url': photoUrl,
+    };
+  }
+}
