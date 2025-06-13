@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../screens/login_screen.dart';
-import '../screens/user/register_screen.dart';
+import '../screens/utilisateur/register_screen.dart';
 import '../screens/otp_verification_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/profile_screen.dart';

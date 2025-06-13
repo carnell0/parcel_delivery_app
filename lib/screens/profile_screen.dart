@@ -14,13 +14,13 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   bool _isLoading = true;
-  Map<String, dynamic>? _userData;
+  Map<String, dynamic>? _utilisateurData;
   bool _isSectionExpanded = true; // Par défaut, la section est ouverte
 
   @override
   void initState() {
     super.initState();
-    _loadUserData();
+    _loadUtilisateurData();
     _loadSectionState();
   }
 
@@ -38,13 +38,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     await prefs.setBool('profile_section_expanded', isExpanded);
   }
 
-  Future<void> _loadUserData() async {
+  Future<void> _loadUtilisateurData() async {
     final apiService = Provider.of<ApiService>(context, listen: false);
     try {
-      final response = await apiService.getCurrentUser();
+      final response = await apiService.getCurrentUtilisateur();
       print('Données utilisateur reçues: $response'); // Debug log
       setState(() {
-        _userData = response;
+        _utilisateurData = response;
         _isLoading = false;
       });
     } catch (e) {
@@ -74,8 +74,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
 
-    print('Données actuelles: $_userData'); // Debug log
-    final isDriver = _userData?['role'] == 'livreur';
+    print('Données actuelles: $_utilisateurData'); // Debug log
+    final isDriver = _utilisateurData?['role'] == 'livreur';
 
     return Container(
       color: Colors.grey[100],
@@ -127,7 +127,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      '${_userData?['last_name'] ?? ''} ${_userData?['first_name'] ?? ''}',
+                      '${_utilisateurData?['nom'] ?? ''} ${_utilisateurData?['prenom'] ?? ''}',
                 style: const TextStyle(
                   fontSize: 24,
                         fontWeight: FontWeight.w600,
@@ -203,13 +203,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               _buildInfoRow(
                                 icon: Icons.directions_car,
                                 label: 'Véhicule',
-                                value: _userData?['typeVehicule'] ?? 'Non spécifié',
+                                value: _utilisateurData?['typeVehicule'] ?? 'Non spécifié',
                               ),
                               const SizedBox(height: 8),
                               _buildInfoRow(
                                 icon: Icons.confirmation_number,
                                 label: 'Immatriculation',
-                                value: _userData?['numeroImmatriculation'] ?? 'Non spécifié',
+                                value: _utilisateurData?['numeroImmatriculation'] ?? 'Non spécifié',
                               ),
                             ],
                           ),

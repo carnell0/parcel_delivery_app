@@ -121,7 +121,7 @@ class LoginScreenState extends State<LoginScreen> {
                           );
                           setState(() => _isLoading = false);
                           if (success) {
-                            final route = apiService.user?.role == 'livreur'
+                            final route = apiService.utilisateur?.role == 'livreur'
                                 ? '/driver/home'
                                 : '/home';
                             Navigator.pushNamedAndRemoveUntil(context, route, (route) => false);

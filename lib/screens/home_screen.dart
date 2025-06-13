@@ -16,7 +16,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final apiService = Provider.of<ApiService>(context);
-    final user = apiService.user;
+    final utilisateur = apiService.utilisateur;
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
@@ -93,7 +93,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Bonjour, ${user?.prenom ?? "Utilisateur"}',
+                                'Bonjour, ${utilisateur?.prenom ?? "Utilisateur"}',
                                 style: const TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,

@@ -20,20 +20,21 @@ class ApiConfig {
   static const String refreshOTPEndpoint = '/refresh-otp/';
   static const String logoutEndpoint = '/logout/';
   static const String refreshTokenEndpoint = '/refresh-token/';
-  static const String currentUserEndpoint = '/me/'; // Endpoint pour récupérer l'utilisateur connecté
+  static const String currentUtilisateurEndpoint = '/me/'; // Endpoint pour récupérer l'utilisateur connecté
   
-  // User endpoints
-  static const String userProfileEndpoint = '/users/profile/';
-  static const String updateProfileEndpoint = '/users/profile/update/';
-  static const String changePasswordEndpoint = '/users/change-password/';
+  // Utilisateur endpoints
+  static const String utilisateurProfileEndpoint = '/utilisateurs/profile/';
+  static const String updateProfileEndpoint = '/utilisateurs/profile/update/';
+  static const String changePasswordEndpoint = '/utilisateurs/change-password/';
   
   // Delivery endpoints
   static const String deliveriesEndpoint = '/deliveries/';
   static const String createDeliveryEndpoint = '/deliveries/create/';
-  static const String deliveryDetailsEndpoint = '/deliveries/{id}/';
+  static const String deliveryDetailsEndpoint = '/livraisons';
   static const String updateDeliveryStatusEndpoint = '/deliveries/{id}/status/';
   static const String cancelDeliveryEndpoint = '/deliveries/{id}/cancel/';
   static const String clientDeliveriesEndpoint = '/deliveries/client/';
+  static const String activeDeliveriesEndpoint = '/livraisons/actives';
   
   // Driver endpoints
   static const String driverProfileEndpoint = '/drivers/profile/';
