@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:parcel_delivery/screens/utilisateur/delivery_form_screen.dart';
 import 'package:parcel_delivery/screens/utilisateur/track_screen.dart';
 import 'package:parcel_delivery/theme/app_theme.dart';
 import 'package:provider/provider.dart';
@@ -264,9 +265,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         Expanded(
                           child: _buildActionCard(
                             icon: Icons.add_circle_outline,
-                            title: 'Nouvelle livraison',
+                            title: 'Nouvelle demande de livraison',
                             onTap: () {
-                              // TODO: Navigation vers nouvelle livraison
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => DeliveryFormScreen(),
+                                ),
+                              );
                             },
                           ),
                         ),

@@ -424,31 +424,41 @@ class ApiService with ChangeNotifier {
   }
 
   Future<bool> createDelivery({
-    required int utilisateurId,
-    String? natureColis,
-    String? dimensions,
-    double? poids,
-    String? photoColis,
-    required String adresseDepart,
-    required String adresseDestination,
-    required String modeLivraison,
+  required int utilisateurId,
+  required String natureColis,
+  required String dimensions,
+  required double poids,
+  String? photoColis,
+  required String modeLivraison,
+  required double latitudeDepart,
+  required double longitudeDepart,
+  required double latitudeArrivee,
+  required double longitudeArrivee,
+  int? numeroDepart,
+  int? numeroArrivee,
   }) async {
     try {
       final response = await _dio.post(
         ApiConfig.createDeliveryEndpoint,
         options: Options(headers: {'Authorization': 'Bearer $_accessToken'}),
         data: {
+          // Partie Demande (infos colis)
           'utilisateur_id': utilisateurId,
           'nature_colis': natureColis,
           'dimensions': dimensions,
           'poids': poids,
           'photo_colis': photoColis,
-          'adresse_depart': adresseDepart,
-          'adresse_destination': adresseDestination,
           'mode_livraison': modeLivraison,
+          // Partie Livraison (localisation)
+          'latitude_depart': latitudeDepart,
+          'longitude_depart': longitudeDepart,
+          'latitude_arrivee': latitudeArrivee,
+          'longitude_arrivee': longitudeArrivee,
+          if (numeroDepart != null) 'numero_depart': numeroDepart,
+          if (numeroArrivee != null) 'numero_arrivee': numeroArrivee,
         },
       );
-
+  
       if (response.statusCode == 201) {
         return true;
       }
@@ -459,7 +469,6 @@ class ApiService with ChangeNotifier {
       return false;
     }
   }
-
   Future<List<Demande>> getClientDemandes() async {
     try {
       final response = await _dio.get(
