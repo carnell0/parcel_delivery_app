@@ -36,7 +36,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       case 0:
         return 'Dcoliv';
       case 1:
-        return 'Livraisons';
+        return 'Aide';
       case 2:
         return 'Suivi';
       case 3:
@@ -152,7 +152,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Bonjour, ${utilisateur?.prenom ?? "Utilisateur"}',
+                                // 'Bonjour, ${utilisateur?.prenom ?? "Utilisateur"}',
+                                'Soyez le bienvenu, très cher',
                                 style: const TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
@@ -488,8 +489,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             label: 'Accueil',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.list_alt),
-            label: 'Livraisons',
+            icon: Icon(Icons.help),
+            label: 'Aide',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.map),

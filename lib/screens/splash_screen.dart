@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:parcel_delivery/services/api_service.dart';
 import 'package:parcel_delivery/theme/app_theme.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -37,9 +39,15 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     _controller.forward();
 
-    // Navigation vers l'écran de connexion après 3 secondes
-    Future.delayed(const Duration(seconds: 3), () {
-      Navigator.pushReplacementNamed(context, '/login');
+    // Vérifie la session et navigue après l'animation
+    Future.delayed(const Duration(seconds: 3), () async {
+      final apiService = Provider.of<ApiService>(context, listen: false);
+      await apiService.initialize();
+      if (apiService.isAuthenticated) {
+        Navigator.pushReplacementNamed(context, '/home');
+      } else {
+        Navigator.pushReplacementNamed(context, '/login');
+      }
     });
   }
 

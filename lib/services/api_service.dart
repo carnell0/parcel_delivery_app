@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../models/utilisateur.dart';
@@ -20,13 +21,14 @@ import 'package:http/http.dart' as http;
 class ApiService with ChangeNotifier {
   final String _baseUrl = ApiConfig.baseUrl;
   Utilisateur? _utilisateur;
+  bool get isAuthenticated => _accessToken != null && _utilisateur != null;
   String? _accessToken;
   String? _refreshToken;
   late Dio _dio;
   bool _isConnected = true;
 
   // Clés pour le stockage local
-  static const String _tokenKey = 'auth_token';
+  static const String _tokenKey = 'access_token';
   static const String _refreshTokenKey = 'refresh_token';
 
   Utilisateur? get utilisateur => _utilisateur;
@@ -37,23 +39,23 @@ class ApiService with ChangeNotifier {
     _checkConnectivity();
   }
 
-  Future<void> _init() async {
+    Future<void> _init() async {
     _dio = Dio(BaseOptions(
       baseUrl: _baseUrl,
       connectTimeout: const Duration(seconds: 30),
       receiveTimeout: const Duration(seconds: 30),
       sendTimeout: const Duration(seconds: 30),
     ));
-
+  
     // Charger le token au démarrage
     final prefs = await SharedPreferences.getInstance();
     _accessToken = prefs.getString('access_token');
     _refreshToken = prefs.getString('refresh_token');
-
+  
     if (_accessToken != null) {
       _dio.options.headers['Authorization'] = 'Bearer $_accessToken';
     }
-
+  
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) {
         if (_accessToken != null) {
@@ -73,31 +75,28 @@ class ApiService with ChangeNotifier {
         return handler.next(e);
       },
     ));
-
+  
     try {
-      final response = await http.get(
-        Uri.parse('${_baseUrl}${ApiConfig.loginEndpoint}'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (_accessToken != null) 'Authorization': 'Bearer $_accessToken',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data['user'] != null) {
-          _utilisateur = Utilisateur.fromJson(data['user']);
+      if (_accessToken != null) {
+        final response = await _dio.get(
+          ApiConfig.utilisateurProfileEndpoint,
+          options: Options(headers: {'Authorization': 'Bearer $_accessToken'}),
+        );
+        if (response.statusCode == 200) {
+          _utilisateur = Utilisateur.fromJson(response.data);
           notifyListeners();
+        } else if (response.statusCode == 401) {
+          await _clearTokens();
         }
-      } else if (response.statusCode == 401) {
-        await _clearTokens();
       }
     } catch (e) {
       print('Error initializing utilisateur session: $e');
       await _clearTokens();
     }
   }
-
+  Future<void> initialize() async {
+    await _init();
+  }
   Future<void> _checkConnectivity() async {
     try {
       final connectivityResult = await Connectivity().checkConnectivity();
@@ -155,7 +154,6 @@ class ApiService with ChangeNotifier {
 
   Future<Map<String, dynamic>> login(String email, String password) async {
     try {
-      // Vérifier la connectivité
       await _checkConnectivity();
       if (!_isConnected) {
         return {
@@ -164,19 +162,7 @@ class ApiService with ChangeNotifier {
           'error': 'no_internet',
         };
       }
-
-      // Vérifier si le serveur est accessible
-      final isServerReachable = await _isServerReachable();
-      if (!isServerReachable) {
-        return {
-          'success': false,
-          'message': 'Le serveur n\'est pas accessible. Veuillez réessayer dans quelques minutes.',
-          'error': 'server_unreachable',
-        };
-      }
-
-      print('Tentative de connexion à: ${_baseUrl}${ApiConfig.loginEndpoint}');
-      
+  
       final response = await _dio.post(
         ApiConfig.loginEndpoint,
         data: {
@@ -184,36 +170,29 @@ class ApiService with ChangeNotifier {
           'password': password,
         },
         options: Options(
-          validateStatus: (status) => status! < 500,
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
           },
+          sendTimeout: const Duration(seconds: 15),
+          receiveTimeout: const Duration(seconds: 15),
+          validateStatus: (status) => status != null && status < 500, // Gère 400/401 sans exception
         ),
-      ).timeout(
-        const Duration(seconds: 30),
-        onTimeout: () {
-          throw TimeoutException('La connexion au serveur a pris trop de temps');
-        },
       );
-
-      print('Réponse de connexion - Status: ${response.statusCode}');
-      print('Réponse de connexion - Body: ${response.data}');
-
+  
       if (response.statusCode == 200) {
         _accessToken = response.data['access'] as String;
         _refreshToken = response.data['refresh'] as String;
-
-        // Sauvegarder les tokens
+  
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('access_token', _accessToken!);
         await prefs.setString('refresh_token', _refreshToken!);
-
+  
         if (response.data['user'] != null) {
           _utilisateur = Utilisateur.fromJson(response.data['user']);
           notifyListeners();
         }
-
+  
         return {
           'success': true,
           'message': 'Connexion réussie',
@@ -227,37 +206,25 @@ class ApiService with ChangeNotifier {
       } else if (response.statusCode == 400) {
         final errorData = response.data;
         String errorMessage = 'Veuillez remplir tous les champs correctement';
-        
         if (errorData is Map<String, dynamic>) {
-          if (errorData['detail'] != null) {
-            errorMessage = errorData['detail'].toString();
-          } else if (errorData['message'] != null) {
-            errorMessage = errorData['message'].toString();
-          } else if (errorData['error'] != null) {
-            errorMessage = errorData['error'].toString();
-          }
+          errorMessage = errorData['detail']?.toString() ??
+              errorData['message']?.toString() ??
+              errorData['error']?.toString() ??
+              errorMessage;
         }
-        
         return {
           'success': false,
           'message': errorMessage,
           'error': 'invalid_input',
         };
       }
-      
+  
       return {
         'success': false,
         'message': 'Une erreur est survenue lors de la connexion',
         'error': 'unknown',
       };
-    } on TimeoutException {
-      return {
-        'success': false,
-        'message': 'Le serveur met trop de temps à répondre. Veuillez réessayer plus tard.',
-        'error': 'timeout',
-      };
     } on DioException catch (e) {
-      print('Erreur de connexion Dio: ${e.message}');
       if (e.type == DioExceptionType.connectionTimeout ||
           e.type == DioExceptionType.receiveTimeout ||
           e.type == DioExceptionType.sendTimeout) {
@@ -272,25 +239,6 @@ class ApiService with ChangeNotifier {
           'message': 'Impossible de se connecter au serveur. Veuillez vérifier votre connexion Internet.',
           'error': 'connection_error',
         };
-      } else if (e.response?.statusCode == 400) {
-        final errorData = e.response?.data;
-        String errorMessage = 'Veuillez remplir tous les champs correctement';
-        
-        if (errorData is Map<String, dynamic>) {
-          if (errorData['detail'] != null) {
-            errorMessage = errorData['detail'].toString();
-          } else if (errorData['message'] != null) {
-            errorMessage = errorData['message'].toString();
-          } else if (errorData['error'] != null) {
-            errorMessage = errorData['error'].toString();
-          }
-        }
-        
-        return {
-          'success': false,
-          'message': errorMessage,
-          'error': 'invalid_input',
-        };
       }
       return {
         'success': false,
@@ -298,7 +246,6 @@ class ApiService with ChangeNotifier {
         'error': 'dio_error',
       };
     } catch (e) {
-      print('Erreur de connexion inattendue: $e');
       return {
         'success': false,
         'message': 'Une erreur inattendue est survenue. Veuillez réessayer.',
@@ -306,7 +253,6 @@ class ApiService with ChangeNotifier {
       };
     }
   }
-
   Future<OTPResponse> register({
     required String nom,
     required String prenom,
