@@ -107,11 +107,6 @@ class _HomeTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final notifications = [
-      "Nouvelle livraison disponible !",
-      "Votre dernière livraison a été validée.",
-    ];
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Dcoliv'),
@@ -119,77 +114,59 @@ class _HomeTab extends StatelessWidget {
         foregroundColor: Colors.white,
         elevation: 0,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              "Notifications récentes",
-              style: Theme.of(context).textTheme.titleLarge,
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 32),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24.0),
+            child: Text(
+              "Alors, on va où aujourd'hui ?",
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 8),
-            ...notifications.map((msg) => _buildNotification(msg)),
-            const SizedBox(height: 24),
-            Text(
-              "Livraisons en attente",
-              style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 32),
+          // Center(
+          //   child: Image.network(
+          //     'https://i.pinimg.com/736x/7a/e7/8c/7ae78c66fd31b4dcbb5f7781f444f268.jpg', // Mets ici l'URL de ton image
+          //     height: 400,
+          //     fit: BoxFit.contain,
+          //   ),
+          // ),
+          Center(
+            child: Image.asset(
+              'assets/images/livreur.jpg', // Mets ton image dans assets
+              height: 400,
+              fit: BoxFit.contain,
             ),
-            const SizedBox(height: 8),
-            if (isLoading)
-              const Center(child: CircularProgressIndicator())
-            else if (pendingDeliveries.isEmpty)
-              const Text("Aucune livraison en attente.")
-            else
-              ...pendingDeliveries.map((liv) => _buildDeliveryCard(context, liv)),
-            const SizedBox(height: 24),
-            ElevatedButton(
+          ),
+          const Spacer(),
+          Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: ElevatedButton.icon(
               onPressed: () {
-                // Naviguer vers l'écran des livraisons en attente
-                // Navigator.push(context, MaterialPageRoute(builder: (_) => const DriverPendingScreen()));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const DriverPendingScreen()),
+                );
               },
+              icon: const Icon(Icons.list_alt),
+              label: const Text(
+                'Voir les demandes en attente',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFF28C38),
+                foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text(
-                'Voir toutes les livraisons en attente',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNotification(String message) {
-    return Card(
-      color: Colors.orange[50],
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      child: ListTile(
-        leading: const Icon(Icons.notifications, color: Color(0xFFF28C38)),
-        title: Text(message),
-      ),
-    );
-  }
-
-  Widget _buildDeliveryCard(BuildContext context, Livraison livraison) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      child: ListTile(
-        leading: const Icon(Icons.local_shipping, color: Color(0xFFF28C38)),
-        title: Text("Livraison #${livraison.id}"),
-        subtitle: Text("Statut : ${livraison.statut}"),
-        trailing: ElevatedButton(
-          onPressed: () {
-            // Action : accepter ou voir la livraison
-          },
-          child: const Text("Voir"),
-        ),
+          ),
+        ],
       ),
     );
   }
