@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:parcel_delivery/screens/utilisateur/service_client_screen.dart';
 import 'package:parcel_delivery/screens/utilisateur/delivery_form_screen.dart';
 import 'package:parcel_delivery/screens/utilisateur/track_screen.dart';
 import 'package:parcel_delivery/theme/app_theme.dart';
@@ -110,6 +111,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  const SizedBox(height: 16),
+
                   // Carte de bienvenue
                   Container(
                     padding: const EdgeInsets.all(20),
@@ -152,7 +155,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                // 'Bonjour, ${utilisateur?.prenom ?? "Utilisateur"}',
                                 'Soyez le bienvenu, très cher',
                                 style: const TextStyle(
                                   fontSize: 20,
@@ -175,6 +177,15 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         ),
                       ],
                     ),
+                  ),
+                  const SizedBox(height: 25),
+                  Center(
+                    child: Image.asset(
+                      'assets/images/dcolivclient.jpeg',
+                      width: 350,
+                      height: 200,
+                      fit: BoxFit.cover,
+                    )
                   ),
                   const SizedBox(height: 25),
 
@@ -281,7 +292,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         Expanded(
                           child: _buildActionCard(
                             icon: Icons.history,
-                            title: 'Historique',
+                            title: 'Voir l\'historique de  vos demandes',
                             onTap: () {
                               // TODO: Navigation vers historique
                             },
@@ -433,12 +444,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             ),
           ),
           // Écran des livraisons
-          Container(
-            color: Colors.white,
-            child: const Center(
-              child: Text('Liste des livraisons'),
-            ),
-          ),
+          const ServiceClientScreen(),
           // Écran de suivi
           TrackScreen(
             deliveryId: _selectedDeliveryId ?? 0,

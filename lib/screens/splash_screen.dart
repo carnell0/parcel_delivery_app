@@ -109,10 +109,10 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                       ),
                     ),
                     SizedBox(height: MediaQuery.of(context).size.height * 0.04),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
                     // Titre
                     Text(
-                      'Parcel Delivery',
+                      'Dcoliv',
                       style: AppTheme.headlineStyle.copyWith(
                         color: AppTheme.primaryColor,
                         fontSize: 32,
