@@ -9,7 +9,7 @@ import 'package:parcel_delivery/theme/app_theme.dart';
 import 'package:geolocator/geolocator.dart';
 
 class DeliveryFormScreen extends StatefulWidget {
-  const DeliveryFormScreen({Key? key}) : super(key: key);
+  const DeliveryFormScreen({super.key});
 
   @override
   State<DeliveryFormScreen> createState() => _DeliveryFormScreenState();
@@ -27,7 +27,7 @@ class _DeliveryFormScreenState extends State<DeliveryFormScreen> {
   final _numeroDepartController = TextEditingController();
   final _numeroArriveeController = TextEditingController();
 
-  String _selectedMode = 'Standard';
+  String _selectedMode = 'standard'; // Valeur par défaut en minuscules
   File? _photoColis;
   bool _isLoading = false;
   LatLng? _departCoord;
@@ -125,12 +125,11 @@ class _DeliveryFormScreenState extends State<DeliveryFormScreen> {
 
       // Création de la demande (infos colis)
       final success = await apiService.createDelivery(
-        utilisateurId: utilisateur.id,
         natureColis: _natureController.text,
         dimensions: _dimensionController.text,
         poids: double.tryParse(_poidsController.text) ?? 0,
         photoColis: _photoColis?.path,
-        modeLivraison: _selectedMode,
+        modeLivraison: _selectedMode, // Toujours en minuscules
         latitudeDepart: double.tryParse(_latitudeDepartController.text) ?? 0,
         longitudeDepart: double.tryParse(_longitudeDepartController.text) ?? 0,
         latitudeArrivee: double.tryParse(_latitudeArriveeController.text) ?? 0,
@@ -285,9 +284,9 @@ class _DeliveryFormScreenState extends State<DeliveryFormScreen> {
                   prefixIcon: Icons.local_shipping,
                 ),
                 items: const [
-                  DropdownMenuItem(value: 'Standard', child: Text('Standard')),
-                  DropdownMenuItem(value: 'Express', child: Text('Express')),
-                  DropdownMenuItem(value: 'Economique', child: Text('Economique')),
+                  DropdownMenuItem(value: 'standard', child: Text('Standard')),
+                  DropdownMenuItem(value: 'express', child: Text('Express')),
+                  DropdownMenuItem(value: 'economique', child: Text('Economique')),
                 ],
                 onChanged: (value) {
                   setState(() {

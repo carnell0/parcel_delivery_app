@@ -2,19 +2,14 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../models/utilisateur.dart';
 import '../models/demande.dart';
 import '../models/livraison.dart';
 import '../models/otp.dart';
-import '../models/reclamation.dart';
-import '../models/retour.dart';
 import '../models/notification.dart' as app_notification;
-import '../models/delivery.dart';
 import 'api_config.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:dio/dio.dart';
 import 'package:http/http.dart' as http;
 
@@ -281,11 +276,11 @@ class ApiService with ChangeNotifier {
         });
       }
 
-      print('Sending registration request to: ${_baseUrl}${ApiConfig.registerEndpoint}');
+      print('Sending registration request to: $_baseUrl${ApiConfig.registerEndpoint}');
       print('Request data: $data');
 
       final response = await http.post(
-        Uri.parse('${_baseUrl}${ApiConfig.registerEndpoint}'),
+        Uri.parse('$_baseUrl${ApiConfig.registerEndpoint}'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(data),
       );
@@ -322,7 +317,7 @@ class ApiService with ChangeNotifier {
   }) async {
     try {
       final response = await http.post(
-        Uri.parse('${_baseUrl}${ApiConfig.verifyOTPEndpoint}'),
+        Uri.parse('$_baseUrl${ApiConfig.verifyOTPEndpoint}'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': email,
@@ -354,7 +349,7 @@ class ApiService with ChangeNotifier {
   Future<OTPResponse> resendOTP({required String email}) async {
     try {
       final response = await http.post(
-        Uri.parse('${_baseUrl}${ApiConfig.refreshOTPEndpoint}'),
+        Uri.parse('$_baseUrl${ApiConfig.refreshOTPEndpoint}'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email}),
       );
@@ -370,51 +365,66 @@ class ApiService with ChangeNotifier {
   }
 
   Future<bool> createDelivery({
-  required int utilisateurId,
-  required String natureColis,
-  required String dimensions,
-  required double poids,
-  String? photoColis,
-  required String modeLivraison,
-  required double latitudeDepart,
-  required double longitudeDepart,
-  required double latitudeArrivee,
-  required double longitudeArrivee,
-  int? numeroDepart,
-  int? numeroArrivee,
+    required String natureColis,
+    required String dimensions,
+    required double poids,
+    String? photoColis,
+    required String modeLivraison,
+    required double latitudeDepart,
+    required double longitudeDepart,
+    required double latitudeArrivee,
+    required double longitudeArrivee,
+    int? numeroDepart,
+    int? numeroArrivee,
   }) async {
     try {
+      final formData = FormData.fromMap({
+        'nature_colis': natureColis,
+        'dimensions': dimensions,
+        'poids': poids.toString(), // Cast en String pour éviter erreur 400
+        'mode_livraison': modeLivraison,
+        'latitude_depart': latitudeDepart.toStringAsFixed(6),
+        'longitude_depart': longitudeDepart.toStringAsFixed(6),
+        'latitude_arrivee': latitudeArrivee.toStringAsFixed(6),
+        'longitude_arrivee': longitudeArrivee.toStringAsFixed(6),
+        if (numeroDepart != null) 'numero_depart': numeroDepart.toString(),
+        if (numeroArrivee != null) 'numero_arrivee': numeroArrivee.toString(),
+        if (photoColis != null && photoColis.isNotEmpty)
+          'photo_colis': await MultipartFile.fromFile(
+            photoColis,
+            filename: 'photo.jpg',
+          ),
+      });
+
       final response = await _dio.post(
         ApiConfig.createDeliveryEndpoint,
-        options: Options(headers: {'Authorization': 'Bearer $_accessToken'}),
-        data: {
-          // Partie Demande (infos colis)
-          'utilisateur_id': utilisateurId,
-          'nature_colis': natureColis,
-          'dimensions': dimensions,
-          'poids': poids,
-          'photo_colis': photoColis,
-          'mode_livraison': modeLivraison,
-          // Partie Livraison (localisation)
-          'latitude_depart': latitudeDepart,
-          'longitude_depart': longitudeDepart,
-          'latitude_arrivee': latitudeArrivee,
-          'longitude_arrivee': longitudeArrivee,
-          if (numeroDepart != null) 'numero_depart': numeroDepart,
-          if (numeroArrivee != null) 'numero_arrivee': numeroArrivee,
-        },
+        data: formData,
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $_accessToken',
+            'Content-Type': 'multipart/form-data',
+          },
+          sendTimeout: const Duration(seconds: 60),
+          receiveTimeout: const Duration(seconds: 60),
+        ),
       );
-  
-      if (response.statusCode == 201) {
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
         return true;
       }
-      print('Create delivery failed: ${response.data}');
+
+      print('Create delivery failed: ${response.statusCode} - ${response.data}');
       return false;
     } on DioException catch (e) {
       print('Create delivery error: ${e.message}');
+      if (e.response != null) {
+        print('Server response: ${e.response!.data}');
+      }
       return false;
     }
   }
+
+
   Future<List<Demande>> getClientDemandes() async {
     try {
       final response = await _dio.get(
@@ -457,27 +467,22 @@ class ApiService with ChangeNotifier {
         ),
       );
 
+      print('Status code: ${response.statusCode}');
+      print('Response data: ${response.data}');
+
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data;
         return data.map((json) => Livraison.fromJson(json)).toList();
-      } else if (response.statusCode == 404) {
-        print('Endpoint non trouvé: ${ApiConfig.driverDeliveriesEndpoint}');
+      } else {
+        print('Erreur: ${response.data}');
         return [];
       }
-      print('Get driver deliveries failed: ${response.data}');
-      return [];
-    } on DioException catch (e) {
-      print('Get driver deliveries error: ${e.message}');
-      if (e.response?.statusCode == 404) {
-        print('Endpoint non trouvé: ${ApiConfig.driverDeliveriesEndpoint}');
-        return [];
-      }
-      return [];
     } catch (e) {
-      print('Unexpected error in getDriverDeliveries: $e');
+      print('Erreur dans getDriverDeliveries: $e');
       return [];
     }
   }
+
 
   Future<bool> acceptDelivery(String deliveryId) async {
     try {
@@ -596,7 +601,7 @@ class ApiService with ChangeNotifier {
   }) async {
     try {
       final response = await http.put(
-        Uri.parse('${_baseUrl}${ApiConfig.updateProfileEndpoint}'),
+        Uri.parse('$_baseUrl${ApiConfig.updateProfileEndpoint}'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $_accessToken',
@@ -627,7 +632,7 @@ class ApiService with ChangeNotifier {
   }) async {
     try {
       final response = await http.post(
-        Uri.parse('${_baseUrl}${ApiConfig.changePasswordEndpoint}'),
+        Uri.parse('$_baseUrl${ApiConfig.changePasswordEndpoint}'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $_accessToken',
@@ -724,7 +729,7 @@ class ApiService with ChangeNotifier {
   Future<Utilisateur?> getUtilisateurProfile() async {
     try {
       final response = await _dio.get(
-        '${_baseUrl}${ApiConfig.utilisateurProfileEndpoint}',
+        '$_baseUrl${ApiConfig.utilisateurProfileEndpoint}',
         options: Options(
           headers: {
             'Authorization': 'Bearer $_accessToken',
@@ -743,14 +748,18 @@ class ApiService with ChangeNotifier {
   Future<Livraison> getDeliveryDetails(int deliveryId) async {
     try {
       final response = await _dio.get(
-        '${_baseUrl}${ApiConfig.deliveryDetailsEndpoint}/$deliveryId',
+        '$_baseUrl${ApiConfig.deliveryDetailsEndpoint}/$deliveryId',
         options: Options(
           headers: {
             'Authorization': 'Bearer $_accessToken',
           },
         ),
       );
-      return Livraison.fromJson(response.data);
+      if (response.statusCode == 200) {
+        return Livraison.fromJson(response.data);
+      } else {
+        throw Exception('Delivery not found');
+      }
     } catch (e) {
       print('Get delivery details error: ${e.toString()}');
       rethrow;
@@ -760,7 +769,7 @@ class ApiService with ChangeNotifier {
   Future<void> updateDeliveryLocation(int deliveryId, double latitude, double longitude) async {
     try {
       final response = await _dio.patch(
-        '${_baseUrl}/deliveries/$deliveryId/update-location/',
+        '$_baseUrl/deliveries/$deliveryId/update-location/',
         data: {
           'latitude': latitude,
           'longitude': longitude,
@@ -795,7 +804,7 @@ class ApiService with ChangeNotifier {
   Future<List<Livraison>> getActiveDeliveries() async {
     try {
       final response = await _dio.get(
-        '${_baseUrl}${ApiConfig.activeDeliveriesEndpoint}',
+        '$_baseUrl${ApiConfig.activeDeliveriesEndpoint}',
         options: Options(
           headers: {
             'Authorization': 'Bearer $_accessToken',
@@ -813,7 +822,7 @@ class ApiService with ChangeNotifier {
   Future<void> updateDeliveryStatus(int deliveryId, String status) async {
     try {
       final response = await _dio.patch(
-        '${_baseUrl}/deliveries/$deliveryId/update-status/',
+        '$_baseUrl/deliveries/$deliveryId/update-status/',
         data: {'status': status},
         options: Options(
           headers: {'Authorization': 'Bearer $_accessToken'},
@@ -832,9 +841,9 @@ class ApiService with ChangeNotifier {
   Future<Map<String, dynamic>> getCurrentUtilisateur() async {
     try {
       print('Access Token: $_accessToken'); // Debug log
-      print('Request URL: ${_baseUrl}${ApiConfig.currentUtilisateurEndpoint}'); // Debug log
+      print('Request URL: $_baseUrl${ApiConfig.currentUtilisateurEndpoint}'); // Debug log
       final response = await _dio.get(
-        '${_baseUrl}${ApiConfig.currentUtilisateurEndpoint}',
+        '$_baseUrl${ApiConfig.currentUtilisateurEndpoint}',
         options: Options(
           headers: {
             'Authorization': 'Bearer $_accessToken',

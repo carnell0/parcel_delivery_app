@@ -4,11 +4,10 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../../models/otp.dart';
 import '../../services/api_service.dart';
-import '../../widgets/custom_button.dart';
 import 'otp_verification_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({Key? key}) : super(key: key);
+  const RegisterScreen({super.key});
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();

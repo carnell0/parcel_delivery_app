@@ -29,7 +29,7 @@ class ApiConfig {
   
   // Delivery endpoints
   static const String deliveriesEndpoint = '/deliveries/';
-  static const String createDeliveryEndpoint = '/deliveries/create/';
+  static const String createDeliveryEndpoint = '/demande/create/';
   static const String deliveryDetailsEndpoint = '/livraisons';
   static const String updateDeliveryStatusEndpoint = '/deliveries/{id}/status/';
   static const String cancelDeliveryEndpoint = '/deliveries/{id}/cancel/';
@@ -39,7 +39,7 @@ class ApiConfig {
   // Driver endpoints
   static const String driverProfileEndpoint = '/drivers/profile/';
   static const String updateDriverProfileEndpoint = '/drivers/profile/update/';
-  static const String driverDeliveriesEndpoint = '/drivers/deliveries/';
+  static const String driverDeliveriesEndpoint = '/livraisons/assignable/';
   static const String acceptDeliveryEndpoint = '/drivers/deliveries/{id}/accept/';
   static const String rejectDeliveryEndpoint = '/drivers/deliveries/{id}/reject/';
   static const String completeDeliveryEndpoint = '/drivers/deliveries/{id}/complete/';

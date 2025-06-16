@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:parcel_delivery/screens/driver/driver_home_screen.dart';
 import 'package:parcel_delivery/theme/app_theme.dart';
 import 'package:parcel_delivery/services/api_service.dart';
 import 'package:provider/provider.dart';
@@ -150,10 +149,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Bienvenue ! Connectez-vous pour continuer',
+                          'Bienvenue ! \n'
+                          'Connectez-vous pour continuer',
                           style: AppTheme.bodyStyle.copyWith(
                             color: AppTheme.secondaryColor.withOpacity(0.7),
+                            fontSize: 16,
                           ),
+                          textAlign: TextAlign.center,
                         ),
                       ],
                     ),

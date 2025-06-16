@@ -440,26 +440,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             ),
           ),
           // Écran de suivi
-          Builder(
-            builder: (context) {
-              if (_selectedDeliveryId == null) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Icon(Icons.map, size: 60, color: Colors.grey),
-                      SizedBox(height: 16),
-                      Text(
-                        'Sélectionnez une livraison à suivre depuis la liste.',
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                );
-              }
-              return TrackScreen(deliveryId: _selectedDeliveryId!);
-            },
+          TrackScreen(
+            deliveryId: _selectedDeliveryId ?? 0,
           ),
           // Écran des messages
           const MessagesScreen(),

@@ -40,15 +40,30 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     _controller.forward();
 
     // Vérifie la session et navigue après l'animation
-    Future.delayed(const Duration(seconds: 3), () async {
-      final apiService = Provider.of<ApiService>(context, listen: false);
-      await apiService.initialize();
-      if (apiService.isAuthenticated) {
-        Navigator.pushReplacementNamed(context, '/home');
+    _redirect();
+  }
+
+  Future<void> _redirect() async {
+    await Future.delayed(const Duration(seconds: 3));
+
+    if (!mounted) return; // Vérifiez si le widget est toujours monté
+
+    final apiService = Provider.of<ApiService>(context, listen: false);
+    await apiService.initialize();
+
+    if (!mounted) return; // Vérifiez à nouveau si le widget est toujours monté
+
+    if (apiService.isAuthenticated) {
+      // Redirigez vers la page d'accueil appropriée en fonction du rôle de l'utilisateur
+      final userRole = apiService.utilisateur?.role; // Assurez-vous que votre modèle Utilisateur a un champ 'role'
+      if (userRole == 'driver') {
+        Navigator.pushReplacementNamed(context, '/driver/home');
       } else {
-        Navigator.pushReplacementNamed(context, '/login');
+        Navigator.pushReplacementNamed(context, '/home');
       }
-    });
+    } else {
+      Navigator.pushReplacementNamed(context, '/login');
+    }
   }
 
   @override
@@ -74,7 +89,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                   children: [
                     // Logo
                     Container(
-                      width: MediaQuery.of(context).size.width * 0.5, // 50% de la largeur de l'écran
+                      width: MediaQuery.of(context).size.width * 0.5,
                       height: MediaQuery.of(context).size.width * 0.5,
                       constraints: const BoxConstraints(
                         minWidth: 150,
@@ -93,7 +108,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                         ),
                       ),
                     ),
-                    SizedBox(height: MediaQuery.of(context).size.height * 0.04), // 4% de la hauteur de l'écran
+                    SizedBox(height: MediaQuery.of(context).size.height * 0.04),
                     const SizedBox(height: 24),
                     // Titre
                     Text(

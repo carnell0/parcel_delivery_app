@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../screens/splash_screen.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
-import '../screens/auth/otp_verification_screen.dart';
 import '../screens/utilisateur/home_screen.dart';
 import '../screens/utilisateur/delivery_form_screen.dart';
 import '../screens/utilisateur/track_screen.dart';

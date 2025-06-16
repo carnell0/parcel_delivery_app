@@ -37,32 +37,61 @@ class Livraison {
     this.derniereMiseAJour,
   });
 
-  factory Livraison.fromJson(Map<String, dynamic> json) {
-    return Livraison(
-      id: json['id'] as int,
-      datePriseEnCharge: DateTime.parse(json['date_prise_en_charge'] as String),
-      longitudeDepart: (json['longitude_depart'] as num?)?.toDouble(),
-      latitudeDepart: (json['latitude_depart'] as num?)?.toDouble(),
-      longitudeArrivee: (json['longitude_arrivee'] as num?)?.toDouble(),
-      latitudeArrivee: (json['latitude_arrivee'] as num?)?.toDouble(),
-      numeroDepart: json['numero_depart'] as int?,
-      numeroArrivee: json['numero_arrivee'] as int?,
-      dateLivraison: json['date_livraison'] != null
-          ? DateTime.parse(json['date_livraison'] as String)
-          : null,
-      statut: json['statut'] as String,
-      utilisateurId: json['utilisateur_id'] as int,
-      demandeId: json['demande_id'] as int,
-      livreurId: json['livreur_id'] as int,
-      nomLivreur: json['nom_livreur'] as String?,
-      dateArriveeEstimee: json['date_arrivee_estimee'] != null
-          ? DateTime.parse(json['date_arrivee_estimee'] as String)
-          : null,
-      derniereMiseAJour: json['derniere_mise_a_jour'] != null
-          ? DateTime.parse(json['derniere_mise_a_jour'] as String)
-          : null,
-    );
+  // factory Livraison.fromJson(Map<String, dynamic> json) {
+  //   return Livraison(
+  //     id: json['id'] as int,
+  //     datePriseEnCharge: DateTime.parse(json['date_prise_en_charge'] as String),
+  //     longitudeDepart: (json['longitude_depart'] as num?)?.toDouble(),
+  //     latitudeDepart: (json['latitude_depart'] as num?)?.toDouble(),
+  //     longitudeArrivee: (json['longitude_arrivee'] as num?)?.toDouble(),
+  //     latitudeArrivee: (json['latitude_arrivee'] as num?)?.toDouble(),
+  //     numeroDepart: json['numero_depart'] as int?,
+  //     numeroArrivee: json['numero_arrivee'] as int?,
+  //     dateLivraison: json['date_livraison'] != null
+  //         ? DateTime.parse(json['date_livraison'] as String)
+  //         : null,
+  //     statut: json['statut'] as String,
+  //     utilisateurId: json['utilisateur_id'] as int,
+  //     demandeId: json['demande_id'] as int,
+  //     livreurId: json['livreur_id'] as int,
+  //     nomLivreur: json['nom_livreur'] as String?,
+  //     dateArriveeEstimee: json['date_arrivee_estimee'] != null
+  //         ? DateTime.parse(json['date_arrivee_estimee'] as String)
+  //         : null,
+  //     derniereMiseAJour: json['derniere_mise_a_jour'] != null
+  //         ? DateTime.parse(json['derniere_mise_a_jour'] as String)
+  //         : null,
+  //   );
+  // }
+
+    factory Livraison.fromJson(Map<String, dynamic> json) {
+    try {
+      return Livraison(
+        id: json['id'] as int,
+        datePriseEnCharge: DateTime.parse(json['date_prise_en_charge']),
+        longitudeDepart: double.tryParse(json['longitude_depart'].toString()),
+        latitudeDepart: double.tryParse(json['latitude_depart'].toString()),
+        longitudeArrivee: double.tryParse(json['longitude_arrivee'].toString()),
+        latitudeArrivee: double.tryParse(json['latitude_arrivee'].toString()),
+        numeroDepart: json['numero_depart'] as int?,
+        numeroArrivee: json['numero_arrivee'] as int?,
+        dateLivraison: json['date_livraison'] != null
+            ? DateTime.parse(json['date_livraison'])
+            : null,
+        statut: json['statut'] as String,
+        utilisateurId: 0,
+        demandeId: json['demande'] as int,
+        livreurId: 0,
+        nomLivreur: null,
+        dateArriveeEstimee: null,
+        derniereMiseAJour: null,
+      );
+    } catch (e) {
+      print('Erreur parsing Livraison: $e\nDonnées: $json');
+      rethrow;
+    }
   }
+
 
   Map<String, dynamic> toJson() {
     return {
